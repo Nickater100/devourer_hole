@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>El Agujero Devorador</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="ui-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1>EL AGUJERO<br><span>DEVORADOR</span></h1>
+            <p>Trágate los bloques enemigos.<br>Protege la esfera interactiva.<br><span class="danger">Persiguen al objetivo. ¡Defiéndelo!</span></p>
+            <button id="start-btn">JUGAR</button>
+        </div>
+
+        <!-- HUD -->
+        <div id="hud" class="screen">
+            <div id="score-display">Puntos: <span>0</span></div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen">
+            <h2>Fin del Juego</h2>
+            <p id="death-reason">¡La esfera fue destruida!</p>
+            <div class="score-board">
+                <p>Puntuación Final: <span id="final-score">0</span></p>
+            </div>
+            <button id="restart-btn">REINTENTAR</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="game.js"></script>
+</body>
+</html>
