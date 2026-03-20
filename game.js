@@ -95,15 +95,15 @@ const Hole = {
     radius: Math.min(canvas.width, canvas.height) * 0.1,
     color: '#0f3460',
     border: '#16213e',
-    
+
     update() {
         // Player moves normally during slow-mo
-        this.x += (mouse.x - this.x) * 0.2; 
+        this.x += (mouse.x - this.x) * 0.2;
         this.y += (mouse.y - this.y) * 0.2;
         this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
     },
-    
+
     draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
@@ -129,7 +129,7 @@ const VIP = {
     vy: 0,
     speed: 1.5,
     timer: 0,
-    
+
     update() {
         this.timer += timeScale;
         if (this.timer > 60 || (this.vx === 0 && this.vy === 0)) {
@@ -148,18 +148,18 @@ const VIP = {
         if (this.y < margin) { this.y = margin; this.vy *= -1; }
         if (this.y > canvas.height - margin) { this.y = canvas.height - margin; this.vy *= -1; }
     },
-    
+
     draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.shadowBlur = 15;
         ctx.shadowColor = this.color;
-        
+
         // Destello en el centro cuando está el slowmo
         ctx.fillStyle = slowMoTimer > 0 ? '#00f2fe' : '#ffffff';
         ctx.fill();
         ctx.shadowBlur = 0;
-        
+
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius * 0.8, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
@@ -186,7 +186,7 @@ function spawnParticles(x, y, color, count) {
 function applyCombo() {
     comboCount++;
     comboTimer = 120; // 2 segundos (a 60fps) ignorando camera lenta
-    
+
     if (comboCount >= 5) {
         slowMoTimer = 300; // 5 segundos de poder absoluto
         currentMultiplier = Math.floor(comboCount / 5) + 1; // x2, x3, x4...
@@ -216,21 +216,21 @@ class Block {
 
         if (this.falling) {
             // Caída se siente ágil, no cuenta el timescale
-            this.scale *= 0.8; 
+            this.scale *= 0.8;
             this.x += (Hole.x - this.x) * 0.2;
             this.y += (Hole.y - this.y) * 0.2;
-            
+
             if (this.scale < 0.1) {
                 this.active = false;
-                
+
                 // Exploción en partículas
                 spawnParticles(Hole.x, Hole.y, this.color, 12);
-                
+
                 // Aplicar sistema de cadena y puntuación
                 applyCombo();
                 score += currentMultiplier;
-                
-                if (score % 10 === 0) speedMultiplier += 0.08; 
+
+                if (score % 10 === 0) speedMultiplier += 0.08;
             }
             return;
         }
@@ -238,43 +238,43 @@ class Block {
         const dx = VIP.x - this.x;
         const dy = VIP.y - this.y;
         const distToVIP = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (distToVIP > 0) {
             this.x += (dx / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
             this.y += (dy / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
         }
-        
+
         this.rotation += 0.05 * timeScale;
 
         const hdx = this.x - Hole.x;
         const hdy = this.y - Hole.y;
         const distToHole = Math.sqrt(hdx * hdx + hdy * hdy);
-        
+
         if (distToHole < Hole.radius - 8) {
             this.falling = true;
         }
 
-        if (distToVIP < VIP.radius + this.width/2 && !this.falling) {
+        if (distToVIP < VIP.radius + this.width / 2 && !this.falling) {
             gameOver("¡Un enemigo destruyó el objetivo!");
         }
     }
 
     draw() {
         if (!this.active) return;
-        
+
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
         ctx.scale(this.scale, this.scale);
-        
+
         ctx.shadowBlur = 10;
         ctx.shadowColor = this.color;
-        
+
         ctx.fillStyle = this.color;
         ctx.beginPath();
-        ctx.roundRect(-this.width/2, -this.height/2, this.width, this.height, 4);
+        ctx.roundRect(-this.width / 2, -this.height / 2, this.width, this.height, 4);
         ctx.fill();
-        
+
         ctx.restore();
     }
 }
@@ -294,7 +294,7 @@ class InvincibleBlock {
 
     update() {
         if (!this.active) return;
-        
+
         this.x += this.vx * timeScale;
         this.y += this.vy * timeScale;
 
@@ -307,29 +307,29 @@ class InvincibleBlock {
         const dx = this.x - Hole.x;
         const dy = this.y - Hole.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (dist < Hole.radius + this.radius) {
             let nx = dx / dist;
             let ny = dy / dist;
             let dotProduct = this.vx * nx + this.vy * ny;
-            
+
             if (dotProduct < 0) {
                 this.vx -= 2 * dotProduct * nx;
                 this.vy -= 2 * dotProduct * ny;
                 this.vx *= 1.05;
                 this.vy *= 1.05;
-                
+
                 const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                 if (currentSpeed > 9) {
                     this.vx = (this.vx / currentSpeed) * 9;
                     this.vy = (this.vy / currentSpeed) * 9;
                 }
-                
+
                 // Massive shake when impacting player
                 screenShakeTime = 20;
                 spawnParticles(this.x, this.y, this.color, 20);
             }
-            
+
             this.x = Hole.x + nx * (Hole.radius + this.radius + 1);
             this.y = Hole.y + ny * (Hole.radius + this.radius + 1);
         }
@@ -351,7 +351,7 @@ class InvincibleBlock {
         ctx.fillStyle = this.color;
         ctx.fill();
         ctx.shadowBlur = 0;
-        
+
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius * 0.4, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
@@ -423,7 +423,7 @@ function updateGameFeel() {
             currentMultiplier = 1;
         }
     }
-    
+
     // Slow Mo Logic
     if (slowMoTimer > 0) {
         slowMoTimer--;
@@ -438,42 +438,42 @@ function updateGameFeel() {
 
 function update() {
     if (gameState !== 'PLAYING') return;
-    
+
     updateGameFeel();
-    
+
     Hole.update();
     VIP.update();
     spawnBlock();
-    
-    if (score > 0 && score % 1000 === 0 && lastInvincibleMilestone !== score) {
+
+    if (score > 0 && score % 50 === 0 && lastInvincibleMilestone !== score) {
         lastInvincibleMilestone = score;
         spawnInvincible();
     }
-    
+
     blocks.forEach(block => block.update());
     blocks = blocks.filter(block => block.active);
-    
+
     invincibleBlocks.forEach(boss => boss.update());
-    
+
     particles.forEach(p => p.update());
     particles = particles.filter(p => p.life > 0);
 }
 
 function drawHUD() {
     let scoreStr = score.toString();
-    
+
     // Si hay combo activo, lo mostramos
     if (currentMultiplier > 1) {
         scoreStr += ` <span style="color:#f39c12; font-size: 1.2rem;">x${currentMultiplier}</span>`;
     }
-    
+
     // Alerta de Cámara lenta (Si quieres que el texto parpadee, puedes quitar esta o dejarla)
     if (slowMoTimer > 0) {
         scoreStr += ` <span style="color:#00f2fe; margin-left: 10px; font-size: 0.9rem; letter-spacing: 2px;">SLOW MO</span>`;
     }
-    
+
     scoreDisplay.innerHTML = scoreStr;
-    
+
     // Barra de Combo debajo de la puntuación
     if (comboTimer > 0) {
         ctx.save();
@@ -488,7 +488,7 @@ function drawHUD() {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     ctx.save();
     // Efecto de Temblor (Screen Shake)
     if (screenShakeTime > 0) {
@@ -497,19 +497,19 @@ function draw() {
         const dy = (Math.random() - 0.5) * intensity;
         ctx.translate(dx, dy);
     }
-    
+
     drawGrid();
-    
+
     particles.forEach(p => p.draw());
     VIP.draw();
-    
+
     blocks.forEach(block => { if (block.falling) block.draw(); });
     Hole.draw();
     blocks.forEach(block => { if (!block.falling) block.draw(); });
     invincibleBlocks.forEach(boss => boss.draw());
-    
+
     ctx.restore(); // Siempre limpiar la traslación de la cámara para UI independiente
-    
+
     // Reflejo blanco en toda la pantalla al detonar un poder (Flash)
     if (flashTime > 0) {
         ctx.fillStyle = `rgba(255, 255, 255, ${flashTime / 5})`;
@@ -518,7 +518,7 @@ function draw() {
 
     // Efecto Viñeta turquesa dramática para ralentización de tiempo
     if (timeScale < 1.0) {
-        const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, canvas.width*0.2, canvas.width/2, canvas.height/2, canvas.width*0.8);
+        const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, canvas.width * 0.2, canvas.width / 2, canvas.height / 2, canvas.width * 0.8);
         grad.addColorStop(0, 'rgba(0, 242, 254, 0)');
         grad.addColorStop(1, `rgba(0, 242, 254, ${(1 - timeScale) * 0.5})`);
         ctx.fillStyle = grad;
@@ -538,10 +538,10 @@ function loop(timestamp) {
 
 window.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'i' && gameState === 'PLAYING') spawnInvincible();
-    
+
     // TECLA TRAMPA PARA PROBAR COMBO DE GOLPE
     if (e.key.toLowerCase() === 'c' && gameState === 'PLAYING') {
-        for(let i=0; i<5; i++) applyCombo();
+        for (let i = 0; i < 5; i++) applyCombo();
     }
 });
 
@@ -554,7 +554,7 @@ function startGame() {
     particles = [];
     lastInvincibleMilestone = 0;
     blocksConfig.frameCount = 0;
-    
+
     // Reset Game Feel variables
     screenShakeTime = 0;
     comboCount = 0;
@@ -563,7 +563,7 @@ function startGame() {
     slowMoTimer = 0;
     timeScale = 1.0;
     flashTime = 0;
-    
+
     Hole.x = canvas.width / 2;
     Hole.y = Math.max(canvas.height - 150, canvas.height / 2);
     mouse.x = Hole.x;
@@ -574,11 +574,11 @@ function startGame() {
     VIP.vx = 0;
     VIP.vy = 0;
     VIP.timer = 60;
-    
+
     startScreen.classList.remove('active');
     gameOverScreen.classList.remove('active');
     hud.classList.add('active');
-    
+
     if (!animationId) loop();
 }
 
