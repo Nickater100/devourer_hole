@@ -7,6 +7,8 @@ const gameOverScreen = document.getElementById('game-over-screen');
 const hud = document.getElementById('hud');
 const scoreDisplay = document.querySelector('#score-display span');
 const finalScoreDisplay = document.getElementById('final-score');
+const startHighScoreDisplay = document.getElementById('start-high-score');
+const gameOverHighScoreDisplay = document.getElementById('game-over-high-score');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const deathReason = document.getElementById('death-reason');
@@ -14,6 +16,9 @@ const deathReason = document.getElementById('death-reason');
 // Game State
 let gameState = 'START';
 let score = 0;
+let highScore = parseInt(localStorage.getItem('devourer_high_score')) || 0;
+if (startHighScoreDisplay) startHighScoreDisplay.innerText = highScore;
+
 let speedMultiplier = 1;
 let animationId;
 let lastInvincibleMilestone = 0;
@@ -588,6 +593,13 @@ function gameOver(reason) {
     gameOverScreen.classList.add('active');
     deathReason.innerText = reason;
     finalScoreDisplay.innerText = score;
+    
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('devourer_high_score', highScore);
+        startHighScoreDisplay.innerText = highScore;
+    }
+    gameOverHighScoreDisplay.innerText = highScore;
 }
 
 startBtn.addEventListener('click', startGame);

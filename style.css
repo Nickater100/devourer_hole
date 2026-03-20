@@ -130,6 +130,27 @@ p .danger {
     font-weight: bold;
 }
 
+.high-score-display {
+    color: var(--primary);
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    background: rgba(26, 26, 46, 0.7);
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(78, 204, 163, 0.3);
+}
+
+.high-score-text {
+    font-size: 1.1rem !important;
+    color: #a0a0a0 !important;
+    margin-top: 5px !important;
+}
+
+.high-score-text span {
+    color: var(--primary) !important;
+}
+
 button {
     background: linear-gradient(45deg, var(--primary), #3db892);
     border: none;
