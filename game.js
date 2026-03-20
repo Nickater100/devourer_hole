@@ -18,6 +18,16 @@ let speedMultiplier = 1;
 let animationId;
 let lastInvincibleMilestone = 0;
 let invincibleBlocks = [];
+let particles = [];
+
+// Game Feel State
+let screenShakeTime = 0;
+let comboCount = 0;
+let comboTimer = 0;
+let currentMultiplier = 1;
+let slowMoTimer = 0;
+let timeScale = 1.0;
+let flashTime = 0;
 
 // Resize Canvas
 function resize() {
@@ -47,6 +57,38 @@ window.addEventListener('touchmove', (e) => {
 
 // --- Entities ---
 
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.05 + 0.02;
+        this.radius = Math.random() * 4 + 2;
+    }
+
+    update() {
+        this.x += this.vx * timeScale;
+        this.y += this.vy * timeScale;
+        this.life -= this.decay * timeScale;
+    }
+
+    draw() {
+        if (this.life <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
 const Hole = {
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -55,7 +97,8 @@ const Hole = {
     border: '#16213e',
     
     update() {
-        this.x += (mouse.x - this.x) * 0.2;
+        // Player moves normally during slow-mo
+        this.x += (mouse.x - this.x) * 0.2; 
         this.y += (mouse.y - this.y) * 0.2;
         this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
@@ -84,12 +127,11 @@ const VIP = {
     color: '#4ecca3',
     vx: 0,
     vy: 0,
-    speed: 1.5, // Mucho más fácil protegerlo al inicio
+    speed: 1.5,
     timer: 0,
     
     update() {
-        this.timer++;
-        // Change direction erratically every ~60 frames
+        this.timer += timeScale;
         if (this.timer > 60 || (this.vx === 0 && this.vy === 0)) {
             this.timer = 0;
             const angle = Math.random() * Math.PI * 2;
@@ -97,10 +139,9 @@ const VIP = {
             this.vy = Math.sin(angle) * this.speed;
         }
 
-        this.x += this.vx;
-        this.y += this.vy;
+        this.x += this.vx * timeScale;
+        this.y += this.vy * timeScale;
 
-        // Bounce off walls
         const margin = this.radius + 20;
         if (this.x < margin) { this.x = margin; this.vx *= -1; }
         if (this.x > canvas.width - margin) { this.x = canvas.width - margin; this.vx *= -1; }
@@ -113,7 +154,9 @@ const VIP = {
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.shadowBlur = 15;
         ctx.shadowColor = this.color;
-        ctx.fillStyle = '#ffffff';
+        
+        // Destello en el centro cuando está el slowmo
+        ctx.fillStyle = slowMoTimer > 0 ? '#00f2fe' : '#ffffff';
         ctx.fill();
         ctx.shadowBlur = 0;
         
@@ -128,11 +171,31 @@ let blocks = [];
 const blocksConfig = {
     width: 25,
     height: 25,
-    spawnRate: 100, // Comienzo muy lento (casi 2 segundos) para enseñar a jugar
+    spawnRate: 100,
     frameCount: 0
 };
 
 const enemyColors = ['#e94560', '#f39c12', '#9b59b6', '#e74c3c'];
+
+function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, color));
+    }
+}
+
+function applyCombo() {
+    comboCount++;
+    comboTimer = 120; // 2 segundos (a 60fps) ignorando camera lenta
+    
+    if (comboCount >= 5) {
+        slowMoTimer = 300; // 5 segundos de poder absoluto
+        currentMultiplier = Math.floor(comboCount / 5) + 1; // x2, x3, x4...
+        flashTime = 5; // Resplandor épico blanco al activar combo
+        // No se reinicia el contador. Queremos que sigan encadenando.
+    } else {
+        currentMultiplier = 1;
+    }
+}
 
 class Block {
     constructor(x, y) {
@@ -145,40 +208,44 @@ class Block {
         this.scale = 1;
         this.falling = false;
         this.rotation = Math.random() * Math.PI * 2;
-        this.baseSpeed = 0.5 + Math.random() * 0.5; // Enemigos iniciales a la mitad de su velocidad vieja
+        this.baseSpeed = 0.5 + Math.random() * 0.5;
     }
 
     update() {
         if (!this.active) return;
 
         if (this.falling) {
-            this.scale *= 0.8;
+            // Caída se siente ágil, no cuenta el timescale
+            this.scale *= 0.8; 
             this.x += (Hole.x - this.x) * 0.2;
             this.y += (Hole.y - this.y) * 0.2;
             
             if (this.scale < 0.1) {
                 this.active = false;
-                score++;
-                scoreDisplay.innerText = score;
-                // Escalada de velocidad mucho más amena (0.08 en lugar de 0.15)
+                
+                // Exploción en partículas
+                spawnParticles(Hole.x, Hole.y, this.color, 12);
+                
+                // Aplicar sistema de cadena y puntuación
+                applyCombo();
+                score += currentMultiplier;
+                
                 if (score % 10 === 0) speedMultiplier += 0.08; 
             }
             return;
         }
 
-        // Homing behavior towards VIP
         const dx = VIP.x - this.x;
         const dy = VIP.y - this.y;
         const distToVIP = Math.sqrt(dx * dx + dy * dy);
         
         if (distToVIP > 0) {
-            this.x += (dx / distToVIP) * this.baseSpeed * speedMultiplier;
-            this.y += (dy / distToVIP) * this.baseSpeed * speedMultiplier;
+            this.x += (dx / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
+            this.y += (dy / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
         }
         
-        this.rotation += 0.05;
+        this.rotation += 0.05 * timeScale;
 
-        // Check collision with Hole
         const hdx = this.x - Hole.x;
         const hdy = this.y - Hole.y;
         const distToHole = Math.sqrt(hdx * hdx + hdy * hdy);
@@ -187,7 +254,6 @@ class Block {
             this.falling = true;
         }
 
-        // Check collision with VIP
         if (distToVIP < VIP.radius + this.width/2 && !this.falling) {
             gameOver("¡Un enemigo destruyó el objetivo!");
         }
@@ -217,10 +283,8 @@ class InvincibleBlock {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.radius = 18; // Bola un poco más grande
-        this.color = '#ff00ff'; // Magenta neón brillante
-        
-        // Comienza con velocidad constante en una dirección aleatoria
+        this.radius = 18;
+        this.color = '#ff00ff';
         const angle = Math.random() * Math.PI * 2;
         const speed = 4;
         this.vx = Math.cos(angle) * speed;
@@ -231,53 +295,49 @@ class InvincibleBlock {
     update() {
         if (!this.active) return;
         
-        this.x += this.vx;
-        this.y += this.vy;
+        this.x += this.vx * timeScale;
+        this.y += this.vy * timeScale;
 
-        // Rebota contra las paredes
         const margin = this.radius;
-        if (this.x < margin) { this.x = margin; this.vx *= -1; }
-        if (this.x > canvas.width - margin) { this.x = canvas.width - margin; this.vx *= -1; }
-        if (this.y < margin) { this.y = margin; this.vy *= -1; }
-        if (this.y > canvas.height - margin) { this.y = canvas.height - margin; this.vy *= -1; }
+        if (this.x < margin) { this.x = margin; this.vx *= -1; screenShakeTime = 8; }
+        if (this.x > canvas.width - margin) { this.x = canvas.width - margin; this.vx *= -1; screenShakeTime = 8; }
+        if (this.y < margin) { this.y = margin; this.vy *= -1; screenShakeTime = 8; }
+        if (this.y > canvas.height - margin) { this.y = canvas.height - margin; this.vy *= -1; screenShakeTime = 8; }
 
-        // Mágia matemática: Rebota contra el Agujero (Jugador)
         const dx = this.x - Hole.x;
         const dy = this.y - Hole.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         if (dist < Hole.radius + this.radius) {
-            // Refleja el vector de velocidad según la normal del impacto
             let nx = dx / dist;
             let ny = dy / dist;
             let dotProduct = this.vx * nx + this.vy * ny;
             
-            // Solo rebotar si viajan hacia nosotros (previene que se quede atrapado)
             if (dotProduct < 0) {
                 this.vx -= 2 * dotProduct * nx;
                 this.vy -= 2 * dotProduct * ny;
-                
-                // Le damos un pequeño empujón de velocidad cada vez que lo golpeas
                 this.vx *= 1.05;
                 this.vy *= 1.05;
                 
-                // Límite máximo de velocidad para que no rompa el juego
                 const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                 if (currentSpeed > 9) {
                     this.vx = (this.vx / currentSpeed) * 9;
                     this.vy = (this.vy / currentSpeed) * 9;
                 }
+                
+                // Massive shake when impacting player
+                screenShakeTime = 20;
+                spawnParticles(this.x, this.y, this.color, 20);
             }
             
-            // Forzar salida para evitar atascos
             this.x = Hole.x + nx * (Hole.radius + this.radius + 1);
             this.y = Hole.y + ny * (Hole.radius + this.radius + 1);
         }
 
-        // Colisión con la VIP
         const vdx = this.x - VIP.x;
         const vdy = this.y - VIP.y;
         if (Math.sqrt(vdx * vdx + vdy * vdy) < VIP.radius + this.radius) {
+            screenShakeTime = 30;
             gameOver("¡La Anomalía Magenta aplastó la esfera!");
         }
     }
@@ -285,7 +345,6 @@ class InvincibleBlock {
     draw() {
         if (!this.active) return;
         ctx.beginPath();
-        // Aura exterior brillante
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.shadowBlur = 25;
         ctx.shadowColor = this.color;
@@ -293,7 +352,6 @@ class InvincibleBlock {
         ctx.fill();
         ctx.shadowBlur = 0;
         
-        // Núcleo letal
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius * 0.4, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
@@ -301,12 +359,10 @@ class InvincibleBlock {
     }
 }
 
-// --- Background Grid ---
 function drawGrid() {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.lineWidth = 1;
     const gridSize = 50;
-
     ctx.beginPath();
     for (let x = 0; x <= canvas.width; x += gridSize) {
         ctx.moveTo(x, 0);
@@ -317,39 +373,6 @@ function drawGrid() {
         ctx.lineTo(canvas.width, y);
     }
     ctx.stroke();
-}
-
-// --- Game Loop ---
-
-function spawnBlock() {
-    blocksConfig.frameCount++;
-    
-    // Baja el timer gradual pero el límite inferior (máximo número de enemigos en pantalla) se relaja de 15 a 25.
-    let currentSpawnRate = Math.max(25, blocksConfig.spawnRate - (score * 0.6));
-
-    if (blocksConfig.frameCount >= currentSpawnRate) {
-        blocksConfig.frameCount = 0;
-        
-        let spawnX, spawnY;
-        const edge = Math.floor(Math.random() * 4);
-        const padding = 50;
-
-        if (edge === 0) { // Top
-            spawnX = Math.random() * canvas.width;
-            spawnY = -padding;
-        } else if (edge === 1) { // Right
-            spawnX = canvas.width + padding;
-            spawnY = Math.random() * canvas.height;
-        } else if (edge === 2) { // Bottom
-            spawnX = Math.random() * canvas.width;
-            spawnY = canvas.height + padding;
-        } else { // Left
-            spawnX = -padding;
-            spawnY = Math.random() * canvas.height;
-        }
-        
-        blocks.push(new Block(spawnX, spawnY));
-    }
 }
 
 function spawnInvincible() {
@@ -364,15 +387,64 @@ function spawnInvincible() {
     invincibleBlocks.push(new InvincibleBlock(spawnX, spawnY));
 }
 
+function spawnBlock() {
+    blocksConfig.frameCount += timeScale;
+    let currentSpawnRate = Math.max(25, blocksConfig.spawnRate - (score * 0.6));
+
+    if (blocksConfig.frameCount >= currentSpawnRate) {
+        blocksConfig.frameCount = 0;
+        let spawnX, spawnY;
+        const edge = Math.floor(Math.random() * 4);
+        const padding = 50;
+
+        if (edge === 0) {
+            spawnX = Math.random() * canvas.width;
+            spawnY = -padding;
+        } else if (edge === 1) {
+            spawnX = canvas.width + padding;
+            spawnY = Math.random() * canvas.height;
+        } else if (edge === 2) {
+            spawnX = Math.random() * canvas.width;
+            spawnY = canvas.height + padding;
+        } else {
+            spawnX = -padding;
+            spawnY = Math.random() * canvas.height;
+        }
+        blocks.push(new Block(spawnX, spawnY));
+    }
+}
+
+function updateGameFeel() {
+    // Combo Logic
+    if (comboTimer > 0) {
+        comboTimer--;
+        if (comboTimer === 0) {
+            comboCount = 0;
+            currentMultiplier = 1;
+        }
+    }
+    
+    // Slow Mo Logic
+    if (slowMoTimer > 0) {
+        slowMoTimer--;
+        timeScale = Math.max(0.2, timeScale - 0.05); // Transición suave a cámara lenta (20% vel normal)
+    } else {
+        timeScale = Math.min(1.0, timeScale + 0.05); // Volver a la normalidad
+    }
+
+    if (screenShakeTime > 0) screenShakeTime--;
+    if (flashTime > 0) flashTime--;
+}
+
 function update() {
     if (gameState !== 'PLAYING') return;
     
+    updateGameFeel();
+    
     Hole.update();
     VIP.update();
-    
     spawnBlock();
     
-    // Spawn de la Anomalía cada 1000 puntos
     if (score > 0 && score % 1000 === 0 && lastInvincibleMilestone !== score) {
         lastInvincibleMilestone = score;
         spawnInvincible();
@@ -382,21 +454,78 @@ function update() {
     blocks = blocks.filter(block => block.active);
     
     invincibleBlocks.forEach(boss => boss.update());
+    
+    particles.forEach(p => p.update());
+    particles = particles.filter(p => p.life > 0);
+}
+
+function drawHUD() {
+    let scoreStr = score.toString();
+    
+    // Si hay combo activo, lo mostramos
+    if (currentMultiplier > 1) {
+        scoreStr += ` <span style="color:#f39c12; font-size: 1.2rem;">x${currentMultiplier}</span>`;
+    }
+    
+    // Alerta de Cámara lenta (Si quieres que el texto parpadee, puedes quitar esta o dejarla)
+    if (slowMoTimer > 0) {
+        scoreStr += ` <span style="color:#00f2fe; margin-left: 10px; font-size: 0.9rem; letter-spacing: 2px;">SLOW MO</span>`;
+    }
+    
+    scoreDisplay.innerHTML = scoreStr;
+    
+    // Barra de Combo debajo de la puntuación
+    if (comboTimer > 0) {
+        ctx.save();
+        ctx.shadowBlur = 0; // Deshabilitar sombras para UI pura
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.fillRect(20, 75, 200, 8);
+        ctx.fillStyle = '#f39c12';
+        ctx.fillRect(20, 75, 200 * (comboTimer / 120), 8);
+        ctx.restore();
+    }
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    ctx.save();
+    // Efecto de Temblor (Screen Shake)
+    if (screenShakeTime > 0) {
+        const intensity = Math.min(15, screenShakeTime);
+        const dx = (Math.random() - 0.5) * intensity;
+        const dy = (Math.random() - 0.5) * intensity;
+        ctx.translate(dx, dy);
+    }
+    
     drawGrid();
     
+    particles.forEach(p => p.draw());
     VIP.draw();
     
     blocks.forEach(block => { if (block.falling) block.draw(); });
     Hole.draw();
     blocks.forEach(block => { if (!block.falling) block.draw(); });
-    
-    // Dibujar enemigos indestructibles por encima de todo
     invincibleBlocks.forEach(boss => boss.draw());
+    
+    ctx.restore(); // Siempre limpiar la traslación de la cámara para UI independiente
+    
+    // Reflejo blanco en toda la pantalla al detonar un poder (Flash)
+    if (flashTime > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashTime / 5})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Efecto Viñeta turquesa dramática para ralentización de tiempo
+    if (timeScale < 1.0) {
+        const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, canvas.width*0.2, canvas.width/2, canvas.height/2, canvas.width*0.8);
+        grad.addColorStop(0, 'rgba(0, 242, 254, 0)');
+        grad.addColorStop(1, `rgba(0, 242, 254, ${(1 - timeScale) * 0.5})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    drawHUD();
 }
 
 function loop(timestamp) {
@@ -407,11 +536,12 @@ function loop(timestamp) {
 
 // --- Control Flow ---
 
-// --- Truco para probar rápidamente ---
 window.addEventListener('keydown', (e) => {
-    // Si presionas la tecla "I" (i latina) durante tu partida, aparecerá el enemigo
-    if (e.key.toLowerCase() === 'i' && gameState === 'PLAYING') {
-        spawnInvincible();
+    if (e.key.toLowerCase() === 'i' && gameState === 'PLAYING') spawnInvincible();
+    
+    // TECLA TRAMPA PARA PROBAR COMBO DE GOLPE
+    if (e.key.toLowerCase() === 'c' && gameState === 'PLAYING') {
+        for(let i=0; i<5; i++) applyCombo();
     }
 });
 
@@ -421,9 +551,18 @@ function startGame() {
     speedMultiplier = 1;
     blocks = [];
     invincibleBlocks = [];
+    particles = [];
     lastInvincibleMilestone = 0;
     blocksConfig.frameCount = 0;
-    scoreDisplay.innerText = '0';
+    
+    // Reset Game Feel variables
+    screenShakeTime = 0;
+    comboCount = 0;
+    comboTimer = 0;
+    currentMultiplier = 1;
+    slowMoTimer = 0;
+    timeScale = 1.0;
+    flashTime = 0;
     
     Hole.x = canvas.width / 2;
     Hole.y = Math.max(canvas.height - 150, canvas.height / 2);
@@ -434,15 +573,13 @@ function startGame() {
     VIP.y = canvas.height / 2;
     VIP.vx = 0;
     VIP.vy = 0;
-    VIP.timer = 60; // Force immediate direction change
+    VIP.timer = 60;
     
     startScreen.classList.remove('active');
     gameOverScreen.classList.remove('active');
     hud.classList.add('active');
     
-    if (!animationId) {
-        loop();
-    }
+    if (!animationId) loop();
 }
 
 function gameOver(reason) {
@@ -453,11 +590,9 @@ function gameOver(reason) {
     finalScoreDisplay.innerText = score;
 }
 
-// Events
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
 
-// Initial Render
 drawGrid();
 Hole.draw();
 VIP.draw();
