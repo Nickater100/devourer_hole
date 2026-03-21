@@ -65,13 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.store-items p').textContent = t.storeSoon;
     document.getElementById('close-store-btn').textContent = t.back;
 
-    // HUD
-    document.getElementById('lbl-score').textContent = t.points;
+    // HUD (ahora manejado por game.js para evitar conflictos)
 
-    // Pantalla Game Over
+    // Pantalla Game Over (ahora manejado por game.js)
     document.querySelector('#game-over-screen h2').textContent = t.gameOver;
-    document.getElementById('lbl-final-score').textContent = t.finalScore;
-    document.getElementById('lbl-best-score').textContent = t.bestScore;
     document.getElementById('restart-btn').textContent = t.retry;
 
     // Actualizar lang en el html tag

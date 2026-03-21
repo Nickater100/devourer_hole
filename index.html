@@ -38,7 +38,7 @@
 
         <!-- HUD -->
         <div id="hud" class="screen">
-            <div id="score-display"><span id="lbl-score">Puntos</span>: <span id="data-score">0</span></div>
+            <div id="score-display"></div>
         </div>
 
         <!-- Game Over Screen -->
@@ -46,8 +46,8 @@
             <h2>Fin del Juego</h2>
             <p id="death-reason">¡La esfera fue destruida!</p>
             <div class="score-board">
-                <p><span id="lbl-final-score">Puntuación Final</span>: <span id="final-score">0</span></p>
-                <p class="high-score-text"><span id="lbl-best-score">Mejor Puntaje</span>: <span id="game-over-high-score">0</span></p>
+                <p id="final-score-container"></p>
+                <p id="high-score-container" class="high-score-text"></p>
             </div>
             <button id="restart-btn">REINTENTAR</button>
         </div>

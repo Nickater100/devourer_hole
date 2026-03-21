@@ -5,10 +5,10 @@ const ctx = canvas.getContext('2d');
 const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
 const hud = document.getElementById('hud');
-const scoreDisplay = document.getElementById('data-score');
-const finalScoreDisplay = document.getElementById('final-score');
+const scoreDisplay = document.getElementById('score-display');
+const finalScoreDisplay = document.getElementById('final-score-container');
 const startHighScoreDisplay = document.getElementById('start-high-score');
-const gameOverHighScoreDisplay = document.getElementById('game-over-high-score');
+const gameOverHighScoreDisplay = document.getElementById('high-score-container');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const deathReason = document.getElementById('death-reason');
@@ -622,7 +622,8 @@ function drawHUD() {
         scoreStr += ` <span style="color:#00f2fe; margin-left: 10px; font-size: 0.9rem; letter-spacing: 2px;">${t.slowMo}</span>`;
     }
 
-    scoreDisplay.innerHTML = scoreStr;
+    let hudStr = `${t.points}: ${scoreStr}`;
+    scoreDisplay.innerHTML = hudStr;
 
     // Barra de Combo debajo de la puntuación
     if (comboTimer > 0) {
@@ -739,7 +740,7 @@ function gameOver(reason) {
     hud.classList.remove('active');
     gameOverScreen.classList.add('active');
     deathReason.innerText = reason;
-    finalScoreDisplay.innerText = score;
+    finalScoreDisplay.innerText = `${t.finalScore}: ${score}`;
     
     // Convert score to coins
     totalCoins += score;
@@ -751,7 +752,7 @@ function gameOver(reason) {
         localStorage.setItem('devourer_high_score', highScore);
         startHighScoreDisplay.innerText = highScore;
     }
-    gameOverHighScoreDisplay.innerText = highScore;
+    gameOverHighScoreDisplay.innerText = `${t.bestScore}: ${highScore}`;
 }
 
 storeBtn.addEventListener('click', () => {
