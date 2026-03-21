@@ -291,14 +291,31 @@ class InvincibleBlock {
         this.radius = 18;
         this.color = '#ff00ff';
         const angle = Math.random() * Math.PI * 2;
-        const speed = 4;
+        const speed = 2; // Velocidad reducida a la mitad
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
         this.active = true;
+        this.falling = false;
+        this.scale = 1;
     }
 
     update() {
         if (!this.active) return;
+
+        if (this.falling) {
+            this.scale *= 0.8;
+            this.x += (Hole.x - this.x) * 0.2;
+            this.y += (Hole.y - this.y) * 0.2;
+
+            if (this.scale < 0.1) {
+                this.active = false;
+                spawnParticles(Hole.x, Hole.y, this.color, 30);
+                score += 10;
+                applyCombo();
+                screenShakeTime = 15;
+            }
+            return;
+        }
 
         this.x += this.vx * timeScale;
         this.y += this.vy * timeScale;
@@ -314,29 +331,34 @@ class InvincibleBlock {
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist < Hole.radius + this.radius) {
-            let nx = dx / dist;
-            let ny = dy / dist;
-            let dotProduct = this.vx * nx + this.vy * ny;
+            // Solo puede morir si estamos en cámara lenta y está lo suficientemente cerca
+            if (slowMoTimer > 0 && dist < Hole.radius) {
+                this.falling = true;
+            } else {
+                let nx = dx / dist;
+                let ny = dy / dist;
+                let dotProduct = this.vx * nx + this.vy * ny;
 
-            if (dotProduct < 0) {
-                this.vx -= 2 * dotProduct * nx;
-                this.vy -= 2 * dotProduct * ny;
-                this.vx *= 1.05;
-                this.vy *= 1.05;
+                if (dotProduct < 0) {
+                    this.vx -= 2 * dotProduct * nx;
+                    this.vy -= 2 * dotProduct * ny;
+                    this.vx *= 1.05;
+                    this.vy *= 1.05;
 
-                const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (currentSpeed > 9) {
-                    this.vx = (this.vx / currentSpeed) * 9;
-                    this.vy = (this.vy / currentSpeed) * 9;
+                    const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    if (currentSpeed > 5) { // Reducida la velocidad máxima de rebote de 9 a 5
+                        this.vx = (this.vx / currentSpeed) * 5;
+                        this.vy = (this.vy / currentSpeed) * 5;
+                    }
+
+                    // Massive shake when impacting player
+                    screenShakeTime = 20;
+                    spawnParticles(this.x, this.y, this.color, 20);
                 }
 
-                // Massive shake when impacting player
-                screenShakeTime = 20;
-                spawnParticles(this.x, this.y, this.color, 20);
+                this.x = Hole.x + nx * (Hole.radius + this.radius + 1);
+                this.y = Hole.y + ny * (Hole.radius + this.radius + 1);
             }
-
-            this.x = Hole.x + nx * (Hole.radius + this.radius + 1);
-            this.y = Hole.y + ny * (Hole.radius + this.radius + 1);
         }
 
         const vdx = this.x - VIP.x;
@@ -349,8 +371,12 @@ class InvincibleBlock {
 
     draw() {
         if (!this.active) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.scale(this.scale, this.scale);
+
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
         ctx.shadowBlur = 25;
         ctx.shadowColor = this.color;
         ctx.fillStyle = this.color;
@@ -358,9 +384,11 @@ class InvincibleBlock {
         ctx.shadowBlur = 0;
 
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius * 0.4, 0, Math.PI * 2);
+        ctx.arc(0, 0, this.radius * 0.4, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
+
+        ctx.restore();
     }
 }
 
@@ -450,15 +478,21 @@ function update() {
     VIP.update();
     spawnBlock();
 
-    if (score > 0 && score % 50 === 0 && lastInvincibleMilestone !== score) {
-        lastInvincibleMilestone = score;
-        spawnInvincible();
+    const currentMilestone = Math.floor(score / 50);
+    if (currentMilestone > lastInvincibleMilestone) {
+        lastInvincibleMilestone = currentMilestone;
+        const targetCount = currentMilestone;
+        const toSpawn = Math.max(0, targetCount - invincibleBlocks.length);
+        for (let i = 0; i < toSpawn; i++) {
+            spawnInvincible();
+        }
     }
 
     blocks.forEach(block => block.update());
     blocks = blocks.filter(block => block.active);
 
     invincibleBlocks.forEach(boss => boss.update());
+    invincibleBlocks = invincibleBlocks.filter(boss => boss.active);
 
     particles.forEach(p => p.update());
     particles = particles.filter(p => p.life > 0);
@@ -509,9 +543,10 @@ function draw() {
     VIP.draw();
 
     blocks.forEach(block => { if (block.falling) block.draw(); });
+    invincibleBlocks.forEach(boss => { if (boss.falling) boss.draw(); });
     Hole.draw();
     blocks.forEach(block => { if (!block.falling) block.draw(); });
-    invincibleBlocks.forEach(boss => boss.draw());
+    invincibleBlocks.forEach(boss => { if (!boss.falling) boss.draw(); });
 
     ctx.restore(); // Siempre limpiar la traslación de la cámara para UI independiente
 
