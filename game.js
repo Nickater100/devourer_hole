@@ -558,7 +558,30 @@ function update() {
 
     Hole.update();
     VIP.update();
+
+    // Colisión Agujero → VIP: el jugador puede empujar la esfera
+    const hvdx = VIP.x - Hole.x;
+    const hvdy = VIP.y - Hole.y;
+    const hvDist = Math.sqrt(hvdx * hvdx + hvdy * hvdy);
+    const minDist = Hole.radius + VIP.radius;
+    if (hvDist < minDist && hvDist > 0) {
+        const nx = hvdx / hvDist;
+        const ny = hvdy / hvDist;
+
+        // Impulso: cuanto más rápido se mueve el Hole hacia el VIP, más fuerte lo empuja
+        const holeSpeedToward = (Hole.x - mouse.x) * -nx + (Hole.y - mouse.y) * -ny;
+        const pushStrength = Math.max(3, Math.min(8, Math.abs(holeSpeedToward) * 0.5 + 4));
+
+        VIP.vx = nx * pushStrength;
+        VIP.vy = ny * pushStrength;
+
+        // Separar para que no se superpongan
+        VIP.x = Hole.x + nx * (minDist + 1);
+        VIP.y = Hole.y + ny * (minDist + 1);
+    }
+
     spawnBlock();
+
 
     const currentMilestone = Math.floor(score / 50);
     if (currentMilestone > lastInvincibleMilestone) {
