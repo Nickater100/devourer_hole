@@ -35,67 +35,67 @@ let invincibleBlocks = [];
 let particles = [];
 
 // --- Audio System ---
-let audioCtx;
+let audioCtx = null;
 
-function initAudio() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Crear Y resumir el contexto en el primer gesto real del usuario
+function unlockAudio() {
+    if (audioCtx) return; // Solo una vez
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // resume() llamado sincrónicamente dentro del handler del evento de usuario = siempre funciona
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
     }
 }
-
-// Crear el contexto de audio al primer toque del usuario (más confiable que en el click de un botón)
-window.addEventListener('mousedown', initAudio, { once: true });
-window.addEventListener('touchstart', initAudio, { once: true });
+window.addEventListener('mousedown', unlockAudio);
+window.addEventListener('touchstart', unlockAudio);
 
 function playDestroySound() {
-    if (!audioCtx) return;
-    // Forzar resume() por si el navegador suspendió el contexto
-    audioCtx.resume().then(() => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.15);
-    });
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
 }
 
 function playBossDestroySound() {
-    if (!audioCtx) return;
-    audioCtx.resume().then(() => {
-        // Capa 1: tono grave expansivo
-        const osc = audioCtx.createOscillator();
-        const gainOsc = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.4);
-        gainOsc.gain.setValueAtTime(0.8, audioCtx.currentTime);
-        gainOsc.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-        osc.connect(gainOsc);
-        gainOsc.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
+    if (!audioCtx || audioCtx.state !== 'running') return;
 
-        // Capa 2: ruido blanco tipo "boom" percusivo
-        const bufferSize = audioCtx.sampleRate * 0.3;
-        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
-        const noise = audioCtx.createBufferSource();
-        noise.buffer = buffer;
-        const noiseGain = audioCtx.createGain();
-        noiseGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-        noise.connect(noiseGain);
-        noiseGain.connect(audioCtx.destination);
-        noise.start();
-    });
+    // Capa 1: tono grave expansivo
+    const osc = audioCtx.createOscillator();
+    const gainOsc = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.4);
+    gainOsc.gain.setValueAtTime(0.8, audioCtx.currentTime);
+    gainOsc.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.connect(gainOsc);
+    gainOsc.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.4);
+
+    // Capa 2: ruido blanco tipo "boom" percusivo
+    const bufferSize = audioCtx.sampleRate * 0.3;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    noise.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    noise.start();
 }
+
+
 
 // Game Feel State
 let screenShakeTime = 0;
@@ -660,8 +660,8 @@ window.addEventListener('keydown', (e) => {
 });
 
 function startGame() {
-    initAudio();
     gameState = 'PLAYING';
+
     score = 0;
     speedMultiplier = 1;
     blocks = [];
