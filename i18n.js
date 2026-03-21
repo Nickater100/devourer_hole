@@ -108,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tienda
     document.querySelector('#store-screen h1').textContent = t.storeTitle;
-    document.querySelector('.store-items p').textContent = t.storeSoon;
     document.getElementById('close-store-btn').textContent = t.back;
 
     // HUD (ahora manejado por game.js para evitar conflictos)
