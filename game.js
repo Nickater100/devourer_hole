@@ -37,17 +37,25 @@ let particles = [];
 // --- Audio System ---
 let audioCtx = null;
 
-// Crear Y resumir el contexto en el primer gesto real del usuario
+// Crear Y desbloquear el audio en el primer gesto del usuario
 function unlockAudio() {
     if (audioCtx) return; // Solo una vez
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // resume() llamado sincrónicamente dentro del handler del evento de usuario = siempre funciona
+
+    // "Silent buffer trick": Android Chrome requiere reproducir un buffer de audio
+    // dentro del mismo gesto de usuario para considerar el contexto desbloqueado.
+    const silentBuffer = audioCtx.createBuffer(1, 1, 22050);
+    const source = audioCtx.createBufferSource();
+    source.buffer = silentBuffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
 }
 window.addEventListener('mousedown', unlockAudio);
-window.addEventListener('touchstart', unlockAudio);
+window.addEventListener('touchstart', unlockAudio, { passive: true });
 
 function playDestroySound() {
     if (!audioCtx || audioCtx.state !== 'running') return;
