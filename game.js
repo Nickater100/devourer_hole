@@ -18,6 +18,7 @@ const startCoinsDisplay = document.getElementById('start-coins');
 const storeTotalCoinsDisplay = document.getElementById('store-total-coins');
 const storeBtn = document.getElementById('store-btn');
 const closeStoreBtn = document.getElementById('close-store-btn');
+const storeItemsContainer = document.getElementById('store-items-container');
 
 // Game State
 let gameState = 'START';
@@ -33,6 +34,25 @@ let animationId;
 let lastInvincibleMilestone = 0;
 let invincibleBlocks = [];
 let particles = [];
+
+// --- Shop & Upgrades Data ---
+const SHOP_ITEMS = [
+    { id: 'skin-neon', type: 'skin', price: 500, icon: 'icon-neon' },
+    { id: 'skin-fire', type: 'skin', price: 1000, icon: 'icon-fire' },
+    { id: 'skin-rainbow', type: 'skin', price: 2500, icon: 'icon-rainbow' },
+    { id: 'upgrade-shield', type: 'upgrade', price: 1500, icon: 'icon-shield', value: '🛡️' },
+    { id: 'upgrade-size', type: 'upgrade', price: 1000, icon: 'icon-size', value: '' },
+    { id: 'upgrade-magnet', type: 'upgrade', price: 1200, icon: 'icon-magnet', value: '🧲' }
+];
+
+let ownedItems = JSON.parse(localStorage.getItem('devourer_owned_items')) || ['skin-default'];
+let equippedSkin = localStorage.getItem('devourer_equipped_skin') || 'skin-default';
+// Las mejoras se compran una vez y se activan permanentemente
+let upgrades = JSON.parse(localStorage.getItem('devourer_upgrades')) || {
+    shield: false,
+    biggerHole: false,
+    magnet: false
+};
 
 // --- Audio System ---
 let audioCtx = null;
@@ -196,6 +216,40 @@ const Hole = {
     },
 
     draw() {
+        ctx.save();
+        
+        // Estilos de Skins
+        let holeColor = this.color;
+        let borderColor = this.border;
+        let shadowColor = 'rgba(0,0,0,0.5)';
+        let shadowBlur = 0;
+
+        if (equippedSkin === 'skin-neon') {
+            holeColor = '#00f2fe';
+            borderColor = '#71f7ff';
+            shadowColor = '#00f2fe';
+            shadowBlur = 20;
+        } else if (equippedSkin === 'skin-fire') {
+            const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+            grad.addColorStop(0, '#ff4b2b');
+            grad.addColorStop(1, '#ff416c');
+            holeColor = grad;
+            borderColor = '#ff4b2b';
+            shadowColor = '#ff4b2b';
+            shadowBlur = 15;
+            
+            // Partículas de "fuego/humo" ocasionales
+            if (Math.random() > 0.8 && gameState === 'PLAYING') {
+                spawnParticles(this.x + (Math.random()-0.5)*20, this.y + (Math.random()-0.5)*20, '#ff4b2b', 1);
+            }
+        } else if (equippedSkin === 'skin-rainbow') {
+            const hue = (Date.now() / 20) % 360;
+            holeColor = `hsl(${hue}, 70%, 50%)`;
+            borderColor = `hsl(${(hue + 40) % 360}, 70%, 60%)`;
+            shadowColor = holeColor;
+            shadowBlur = 15;
+        }
+
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(15, 52, 96, 0.3)';
@@ -203,11 +257,16 @@ const Hole = {
 
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowColor = shadowColor;
+        ctx.fillStyle = holeColor;
         ctx.fill();
+        ctx.shadowBlur = 0;
+        
         ctx.lineWidth = 5;
-        ctx.strokeStyle = this.border;
+        ctx.strokeStyle = borderColor;
         ctx.stroke();
+        ctx.restore();
     }
 };
 
@@ -220,6 +279,7 @@ const VIP = {
     vy: 0,
     speed: 1.5,
     timer: 0,
+    hasShield: false,
 
     update() {
         this.timer += timeScale;
@@ -255,6 +315,17 @@ const VIP = {
         ctx.arc(this.x, this.y, this.radius * 0.8, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
         ctx.fill();
+
+        // Dibujar escudo si tiene
+        if (this.hasShield) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
     }
 };
 
@@ -342,12 +413,29 @@ class Block {
         const hdy = this.y - Hole.y;
         const distToHole = Math.sqrt(hdx * hdx + hdy * hdy);
 
+        // Succión del Imán (Upgrade)
+        if (upgrades.magnet && distToHole < Hole.radius * 2 && !this.falling) {
+            const pullForce = 0.05;
+            this.x -= (hdx / distToHole) * pullForce * (Hole.radius * 2 - distToHole) * 0.1;
+            this.y -= (hdy / distToHole) * pullForce * (Hole.radius * 2 - distToHole) * 0.1;
+        }
+
         if (distToHole < Hole.radius - 8) {
             this.falling = true;
         }
 
         if (distToVIP < VIP.radius + this.width / 2 && !this.falling) {
-            gameOver(t.deathEnemy);
+            if (VIP.hasShield) {
+                VIP.hasShield = false;
+                this.falling = true; // El bloque que golpeó el escudo es destruido
+                screenShakeTime = 20;
+                flashTime = 5;
+                spawnParticles(VIP.x, VIP.y, '#00f2fe', 20);
+                // Sonido de escudo roto o impacto? Reutilizamos sonido por ahora
+                playBossDestroySound();
+            } else {
+                gameOver(t.deathEnemy);
+            }
         }
     }
 
@@ -418,6 +506,12 @@ class InvincibleBlock {
         const dy = this.y - Hole.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
+        // Succión del Imán (Upgrade) - Solo afecta un poco para facilitar el luring
+        if (upgrades.magnet && dist < Hole.radius * 3 && !this.falling) {
+            this.vx -= (dx / dist) * 0.05;
+            this.vy -= (dy / dist) * 0.05;
+        }
+
         if (dist < Hole.radius + this.radius) {
             // Solo puede morir si estamos en cámara lenta y está lo suficientemente cerca
             if (slowMoTimer > 0 && dist < Hole.radius) {
@@ -452,8 +546,18 @@ class InvincibleBlock {
         const vdx = this.x - VIP.x;
         const vdy = this.y - VIP.y;
         if (Math.sqrt(vdx * vdx + vdy * vdy) < VIP.radius + this.radius) {
-            screenShakeTime = 30;
-            gameOver(t.deathBoss);
+            if (VIP.hasShield) {
+                VIP.hasShield = false;
+                this.vx *= -1.5; // Rebota fuerte contra el escudo
+                this.vy *= -1.5;
+                screenShakeTime = 30;
+                flashTime = 5;
+                spawnParticles(VIP.x, VIP.y, '#00f2fe', 30);
+                playBossDestroySound();
+            } else {
+                screenShakeTime = 30;
+                gameOver(t.deathBoss);
+            }
         }
     }
 
@@ -708,6 +812,12 @@ function startGame() {
     lastInvincibleMilestone = 0;
     blocksConfig.frameCount = 0;
 
+    // Aplicar Upgrades Permanentes
+    Hole.radius = Math.min(canvas.width, canvas.height) * 0.1;
+    if (upgrades.biggerHole) Hole.radius *= 1.15;
+    
+    VIP.hasShield = upgrades.shield;
+
     // Reset Game Feel variables
     screenShakeTime = 0;
     comboCount = 0;
@@ -755,9 +865,93 @@ function gameOver(reason) {
     gameOverHighScoreDisplay.innerText = `${t.bestScore}: ${highScore}`;
 }
 
+function updateStoreUI() {
+    storeItemsContainer.innerHTML = '';
+    
+    SHOP_ITEMS.forEach(item => {
+        const isOwned = ownedItems.includes(item.id);
+        const isEquipped = equippedSkin === item.id;
+        const canAfford = totalCoins >= item.price;
+        
+        const itemEl = document.createElement('div');
+        itemEl.className = 'store-item';
+        
+        // Determinar texto y clase del botón
+        let btnText = t.buy;
+        let btnClass = 'buy-btn';
+        
+        if (isOwned) {
+            if (item.type === 'skin') {
+                if (isEquipped) {
+                    btnText = t.equipped;
+                    btnClass += ' equipped';
+                } else {
+                    btnText = t.equip;
+                }
+            } else {
+                btnText = t.owned;
+                btnClass += ' owned';
+            }
+        } else if (!canAfford) {
+            btnText = t.insufficient;
+            btnClass += ' insufficient';
+        }
+
+        const nameKey = item.id.replace(/-([a-z])/, (m, c) => c.toUpperCase()); // e.g. skinNeon
+        const descKey = nameKey + 'Desc';
+
+        itemEl.innerHTML = `
+            <div class="item-icon ${item.icon}">${item.value || ''}</div>
+            <div class="item-name">${t[nameKey]}</div>
+            <div class="item-desc">${t[descKey]}</div>
+            ${!isOwned ? `<div class="item-price">🪙 ${item.price}</div>` : ''}
+            <button class="${btnClass}" data-id="${item.id}">${btnText}</button>
+        `;
+        
+        const btn = itemEl.querySelector('button');
+        btn.addEventListener('click', () => handleStoreAction(item));
+        
+        storeItemsContainer.appendChild(itemEl);
+    });
+}
+
+function handleStoreAction(item) {
+    const isOwned = ownedItems.includes(item.id);
+    
+    if (isOwned) {
+        if (item.type === 'skin' && equippedSkin !== item.id) {
+            equippedSkin = item.id;
+            localStorage.setItem('devourer_equipped_skin', equippedSkin);
+            updateStoreUI();
+        }
+        return;
+    }
+    
+    if (totalCoins >= item.price) {
+        // Comprar
+        totalCoins -= item.price;
+        ownedItems.push(item.id);
+        
+        // Aplicar efectos permanentes de upgrades
+        if (item.id === 'upgrade-shield') upgrades.shield = true;
+        if (item.id === 'upgrade-size') upgrades.biggerHole = true;
+        if (item.id === 'upgrade-magnet') upgrades.magnet = true;
+        
+        localStorage.setItem('devourer_total_coins', totalCoins);
+        localStorage.setItem('devourer_owned_items', JSON.stringify(ownedItems));
+        localStorage.setItem('devourer_upgrades', JSON.stringify(upgrades));
+        
+        startCoinsDisplay.innerText = totalCoins;
+        storeTotalCoinsDisplay.innerText = totalCoins;
+        
+        updateStoreUI();
+    }
+}
+
 storeBtn.addEventListener('click', () => {
     startScreen.classList.remove('active');
     storeTotalCoinsDisplay.innerText = totalCoins;
+    updateStoreUI();
     storeScreen.classList.add('active');
 });
 
