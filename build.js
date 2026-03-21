@@ -1,0 +1,40 @@
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const srcDir = __dirname;
+const destDir = path.join(__dirname, 'www');
+
+// Ensure www exists
+if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir);
+}
+
+// Files to copy
+const filesToCopy = [
+    'index.html',
+    'style.css',
+    'game.js',
+    'i18n.js',
+    'firebase-init.js'
+];
+
+filesToCopy.forEach(file => {
+    const srcPath = path.join(srcDir, file);
+    const destPath = path.join(destDir, file);
+    if (fs.existsSync(srcPath)) {
+        fs.copyFileSync(srcPath, destPath);
+        console.log(`Copied ${file} to www/`);
+    } else {
+        console.warn(`Warning: ${file} not found!`);
+    }
+});
+
+console.log('Running esbuild to bundle AdMob plugin...');
+try {
+    execSync('npx esbuild admob-init.js --bundle --outfile=www/admob-bundle.js', { stdio: 'inherit' });
+} catch (e) {
+    console.error('esbuild failed', e);
+}
+
+console.log('Build complete!');
