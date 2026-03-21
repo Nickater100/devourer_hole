@@ -40,8 +40,14 @@ const translations = {
     }
 };
 
-// Detectar idioma del navegador
-const lang = (navigator.language || 'es').toLowerCase().startsWith('en') ? 'en' : 'es';
+// Detectar idioma: revisar TODAS las preferencias del navegador (no solo la principal)
+// Si el usuario tiene español en cualquier posición (es, es-AR, es-419), usamos español.
+const userLangs = navigator.languages && navigator.languages.length
+    ? navigator.languages
+    : [navigator.language || 'es'];
+
+const prefersSpanish = userLangs.some(l => l.toLowerCase().startsWith('es'));
+const lang = (!prefersSpanish && userLangs[0].toLowerCase().startsWith('en')) ? 'en' : 'es';
 const t = translations[lang];
 
 // Aplicar traducciones al HTML estático
@@ -49,7 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Pantalla de inicio
     document.querySelector('#start-screen h1').innerHTML = `${t.title1}<br><span>${t.title2}</span>`;
     document.querySelector('#start-screen p').innerHTML = t.subtitle;
-    document.querySelector('.high-score-display').innerHTML = `${t.highScore}: <span id="start-high-score">0</span>`;
+    // Solo actualizar el texto del label, NO reemplazar el innerHTML completo
+    // (game.js tiene referencias a los <span> internos que deben mantenerse vivos)
+    document.querySelector('.high-score-display').firstChild.textContent = `${t.highScore}: `;
     document.getElementById('start-btn').textContent = t.play;
     document.getElementById('store-btn').textContent = t.store;
 
@@ -58,15 +66,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.store-items p').textContent = t.storeSoon;
     document.getElementById('close-store-btn').textContent = t.back;
 
-    // HUD
-    document.querySelector('#score-display').innerHTML = `${t.points}: <span>0</span>`;
+    // HUD — solo el nodo de texto, no el <span> del número
+    document.querySelector('#score-display').firstChild.textContent = `${t.points}: `;
 
     // Pantalla Game Over
     document.querySelector('#game-over-screen h2').textContent = t.gameOver;
-    document.querySelector('.score-board p:first-child').innerHTML = `${t.finalScore}: <span id="final-score">0</span>`;
-    document.querySelector('.high-score-text').innerHTML = `${t.bestScore}: <span id="game-over-high-score">0</span>`;
+    document.querySelector('.score-board p:first-child').firstChild.textContent = `${t.finalScore}: `;
+    document.querySelector('.high-score-text').firstChild.textContent = `${t.bestScore}: `;
     document.getElementById('restart-btn').textContent = t.retry;
 
     // Actualizar lang en el html tag
     document.documentElement.lang = lang;
 });
+
