@@ -13,11 +13,20 @@ const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const deathReason = document.getElementById('death-reason');
 
+const storeScreen = document.getElementById('store-screen');
+const startCoinsDisplay = document.getElementById('start-coins');
+const storeTotalCoinsDisplay = document.getElementById('store-total-coins');
+const storeBtn = document.getElementById('store-btn');
+const closeStoreBtn = document.getElementById('close-store-btn');
+
 // Game State
 let gameState = 'START';
 let score = 0;
 let highScore = parseInt(localStorage.getItem('devourer_high_score')) || 0;
 if (startHighScoreDisplay) startHighScoreDisplay.innerText = highScore;
+
+let totalCoins = parseInt(localStorage.getItem('devourer_total_coins')) || 0;
+if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
 
 let speedMultiplier = 1;
 let animationId;
@@ -629,6 +638,11 @@ function gameOver(reason) {
     deathReason.innerText = reason;
     finalScoreDisplay.innerText = score;
     
+    // Convert score to coins
+    totalCoins += score;
+    localStorage.setItem('devourer_total_coins', totalCoins);
+    if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
+
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('devourer_high_score', highScore);
@@ -636,6 +650,17 @@ function gameOver(reason) {
     }
     gameOverHighScoreDisplay.innerText = highScore;
 }
+
+storeBtn.addEventListener('click', () => {
+    startScreen.classList.remove('active');
+    storeTotalCoinsDisplay.innerText = totalCoins;
+    storeScreen.classList.add('active');
+});
+
+closeStoreBtn.addEventListener('click', () => {
+    storeScreen.classList.remove('active');
+    startScreen.classList.add('active');
+});
 
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);

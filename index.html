@@ -16,8 +16,24 @@
             <h1>EL AGUJERO<br><span>DEVORADOR</span></h1>
             <p>Trágate los bloques enemigos.<br>Protege la esfera interactiva.<br><span class="danger">Persiguen al
                     objetivo. ¡Defiéndelo!</span></p>
-            <div class="high-score-display">Mejor Puntaje: <span id="start-high-score">0</span></div>
-            <button id="start-btn">JUGAR</button>
+            <div class="stats-container">
+                <div class="high-score-display">Mejor Puntaje: <span id="start-high-score">0</span></div>
+                <div class="coins-display">🪙 <span id="start-coins">0</span></div>
+            </div>
+            <div class="menu-buttons">
+                <button id="start-btn">JUGAR</button>
+                <button id="store-btn" class="secondary-btn">TIENDA</button>
+            </div>
+        </div>
+
+        <!-- Store Screen -->
+        <div id="store-screen" class="screen">
+            <h1>LA TIENDA</h1>
+            <div class="coins-display store-coins">🪙 <span id="store-total-coins">0</span></div>
+            <div class="store-items">
+                <p>¡Próximamente podrás comprar mejoras y poderes aquí!</p>
+            </div>
+            <button id="close-store-btn" class="secondary-btn">VOLVER</button>
         </div>
 
         <!-- HUD -->
