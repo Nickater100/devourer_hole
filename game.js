@@ -34,6 +34,58 @@ let lastInvincibleMilestone = 0;
 let invincibleBlocks = [];
 let particles = [];
 
+// --- Audio System ---
+let audioCtx;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+function playDestroySound() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    
+    // Tonos altos descendentes (Pop)
+    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+}
+
+function playBossDestroySound() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    
+    // Explosión grave
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.3);
+    
+    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+}
+
 // Game Feel State
 let screenShakeTime = 0;
 let comboCount = 0;
@@ -239,6 +291,7 @@ class Block {
 
                 // Exploción en partículas
                 spawnParticles(Hole.x, Hole.y, this.color, 12);
+                playDestroySound();
 
                 // Aplicar sistema de cadena y puntuación
                 applyCombo();
@@ -319,6 +372,7 @@ class InvincibleBlock {
             if (this.scale < 0.1) {
                 this.active = false;
                 spawnParticles(Hole.x, Hole.y, this.color, 30);
+                playBossDestroySound();
                 score += 10;
                 applyCombo();
                 screenShakeTime = 15;
@@ -595,6 +649,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 function startGame() {
+    initAudio();
     gameState = 'PLAYING';
     score = 0;
     speedMultiplier = 1;
