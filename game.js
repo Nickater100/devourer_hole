@@ -37,25 +37,31 @@ let particles = [];
 // --- Audio System ---
 let audioCtx = null;
 
-// Crear Y desbloquear el audio en el primer gesto del usuario
 function unlockAudio() {
-    if (audioCtx) return; // Solo una vez
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Crear el contexto si no existe
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
 
-    // "Silent buffer trick": Android Chrome requiere reproducir un buffer de audio
-    // dentro del mismo gesto de usuario para considerar el contexto desbloqueado.
+    // Reproducir buffer silencioso en CADA gesto — Android exige que se use
+    // el contexto dentro del gesto para desbloquearlo y para mantenerlo activo.
     const silentBuffer = audioCtx.createBuffer(1, 1, 22050);
     const source = audioCtx.createBufferSource();
     source.buffer = silentBuffer;
     source.connect(audioCtx.destination);
     source.start(0);
 
-    if (audioCtx.state === 'suspended') {
+    // Resume sincrónico dentro del event handler (siempre permitido)
+    if (audioCtx.state !== 'running') {
         audioCtx.resume();
     }
 }
+
+// Usar touchend Y click (más confiable que touchstart en Android Chrome)
+window.addEventListener('touchend', unlockAudio, { passive: true });
+window.addEventListener('click', unlockAudio);
 window.addEventListener('mousedown', unlockAudio);
-window.addEventListener('touchstart', unlockAudio, { passive: true });
+
 
 function playDestroySound() {
     if (!audioCtx || audioCtx.state !== 'running') return;
@@ -341,7 +347,7 @@ class Block {
         }
 
         if (distToVIP < VIP.radius + this.width / 2 && !this.falling) {
-            gameOver("¡Un enemigo destruyó el objetivo!");
+            gameOver(t.deathEnemy);
         }
     }
 
@@ -447,7 +453,7 @@ class InvincibleBlock {
         const vdy = this.y - VIP.y;
         if (Math.sqrt(vdx * vdx + vdy * vdy) < VIP.radius + this.radius) {
             screenShakeTime = 30;
-            gameOver("¡La Anomalía Magenta aplastó la esfera!");
+            gameOver(t.deathBoss);
         }
     }
 
@@ -613,7 +619,7 @@ function drawHUD() {
 
     // Alerta de Cámara lenta (Si quieres que el texto parpadee, puedes quitar esta o dejarla)
     if (slowMoTimer > 0) {
-        scoreStr += ` <span style="color:#00f2fe; margin-left: 10px; font-size: 0.9rem; letter-spacing: 2px;">SLOW MO</span>`;
+        scoreStr += ` <span style="color:#00f2fe; margin-left: 10px; font-size: 0.9rem; letter-spacing: 2px;">${t.slowMo}</span>`;
     }
 
     scoreDisplay.innerHTML = scoreStr;
