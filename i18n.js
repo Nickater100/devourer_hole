@@ -55,9 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Pantalla de inicio
     document.querySelector('#start-screen h1').innerHTML = `${t.title1}<br><span>${t.title2}</span>`;
     document.querySelector('#start-screen p').innerHTML = t.subtitle;
-    // Solo actualizar el texto del label, NO reemplazar el innerHTML completo
-    // (game.js tiene referencias a los <span> internos que deben mantenerse vivos)
-    document.querySelector('.high-score-display').firstChild.textContent = `${t.highScore}: `;
+    // Labels con ID propio → nunca tocamos los <span> de datos que usa game.js
+    document.getElementById('lbl-high-score').textContent = t.highScore;
     document.getElementById('start-btn').textContent = t.play;
     document.getElementById('store-btn').textContent = t.store;
 
@@ -66,13 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.store-items p').textContent = t.storeSoon;
     document.getElementById('close-store-btn').textContent = t.back;
 
-    // HUD — solo el nodo de texto, no el <span> del número
-    document.querySelector('#score-display').firstChild.textContent = `${t.points}: `;
+    // HUD
+    document.getElementById('lbl-score').textContent = t.points;
 
     // Pantalla Game Over
     document.querySelector('#game-over-screen h2').textContent = t.gameOver;
-    document.querySelector('.score-board p:first-child').firstChild.textContent = `${t.finalScore}: `;
-    document.querySelector('.high-score-text').firstChild.textContent = `${t.bestScore}: `;
+    document.getElementById('lbl-final-score').textContent = t.finalScore;
+    document.getElementById('lbl-best-score').textContent = t.bestScore;
     document.getElementById('restart-btn').textContent = t.retry;
 
     // Actualizar lang en el html tag

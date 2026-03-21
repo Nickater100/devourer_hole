@@ -17,7 +17,7 @@
             <p>Trágate los bloques enemigos.<br>Protege la esfera interactiva.<br><span class="danger">Persiguen al
                     objetivo. ¡Defiéndelo!</span></p>
             <div class="stats-container">
-                <div class="high-score-display">Mejor Puntaje: <span id="start-high-score">0</span></div>
+                <div class="high-score-display"><span id="lbl-high-score">Mejor Puntaje</span>: <span id="start-high-score">0</span></div>
                 <div class="coins-display">🪙 <span id="start-coins">0</span></div>
             </div>
             <div class="menu-buttons">
@@ -38,7 +38,7 @@
 
         <!-- HUD -->
         <div id="hud" class="screen">
-            <div id="score-display">Puntos: <span>0</span></div>
+            <div id="score-display"><span id="lbl-score">Puntos</span>: <span>0</span></div>
         </div>
 
         <!-- Game Over Screen -->
@@ -46,8 +46,8 @@
             <h2>Fin del Juego</h2>
             <p id="death-reason">¡La esfera fue destruida!</p>
             <div class="score-board">
-                <p>Puntuación Final: <span id="final-score">0</span></p>
-                <p class="high-score-text">Mejor Puntaje: <span id="game-over-high-score">0</span></p>
+                <p><span id="lbl-final-score">Puntuación Final</span>: <span id="final-score">0</span></p>
+                <p class="high-score-text"><span id="lbl-best-score">Mejor Puntaje</span>: <span id="game-over-high-score">0</span></p>
             </div>
             <button id="restart-btn">REINTENTAR</button>
         </div>
