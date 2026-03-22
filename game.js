@@ -25,6 +25,7 @@ const loginBtn = document.getElementById('login-btn');
 const leaderboardScreen = document.getElementById('leaderboard-screen');
 const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
 const leaderboardList = document.getElementById('leaderboard-list');
+const menuBtn = document.getElementById('menu-btn');
 
 // Game State
 let gameState = 'START';
@@ -200,7 +201,9 @@ function updateMouse(e) {
 
 window.addEventListener('mousemove', updateMouse);
 window.addEventListener('touchmove', (e) => {
-    e.preventDefault();
+    if (gameState === 'PLAYING') {
+        e.preventDefault();
+    }
     updateMouse(e);
 }, { passive: false });
 
@@ -1080,6 +1083,12 @@ const fbInitInterval = setInterval(() => {
 
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
+
+menuBtn.addEventListener('click', () => {
+    gameOverScreen.classList.remove('active');
+    startScreen.classList.add('active');
+    drawGrid(); // Redibujar la cuadrícula de fondo
+});
 
 drawGrid();
 Hole.draw();

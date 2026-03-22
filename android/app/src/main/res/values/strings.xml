@@ -4,4 +4,5 @@
     <string name="title_activity_main">Devourer Hole</string>
     <string name="package_name">com.nickater.devourer</string>
     <string name="custom_url_scheme">com.nickater.devourer</string>
+    <string name="server_client_id">857081135448-r4n44jakpp9lccn73527so10ai1oped1.apps.googleusercontent.com</string>
 </resources>

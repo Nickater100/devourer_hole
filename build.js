@@ -34,7 +34,14 @@ console.log('Running esbuild to bundle AdMob plugin...');
 try {
     execSync('npx esbuild admob-init.js --bundle --outfile=www/admob-bundle.js', { stdio: 'inherit' });
 } catch (e) {
-    console.error('esbuild failed', e);
+    console.error('esbuild failed for admob', e);
+}
+
+console.log('Running esbuild to bundle GoogleAuth plugin...');
+try {
+    execSync('npx esbuild google-auth-init.js --bundle --outfile=www/google-auth-bundle.js', { stdio: 'inherit' });
+} catch (e) {
+    console.error('esbuild failed for google auth', e);
 }
 
 console.log('Build complete!');

@@ -10,6 +10,16 @@
 </head>
 
 <body>
+    <div id="debug-console" style="position:fixed;top:0;left:0;width:100%;max-height:30%;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:10px;overflow-y:auto;z-index:9999;pointer-events:none;padding:5px;"></div>
+    <script>
+        const debugConsole = document.getElementById('debug-console');
+        function logDebug(msg) { debugConsole.innerHTML += msg + '<br>'; debugConsole.scrollTop = debugConsole.scrollHeight; }
+        window.onerror = function(msg, src, lineno, colno, error) { logDebug('ERR: ' + msg); };
+        window.addEventListener('unhandledrejection', function(e) { logDebug('PROMISE: ' + (e.reason ? e.reason.message || e.reason : 'Unknown')); });
+        const oLog = console.log, oErr = console.error;
+        console.log = function(...args) { logDebug('LOG: ' + args.join(' ')); oLog.apply(console, args); };
+        console.error = function(...args) { logDebug('<span style="color:red">ERR: ' + args.join(' ') + '</span>'); oErr.apply(console, args); };
+    </script>
     <div id="ui-container">
         <!-- Start Screen -->
         <div id="start-screen" class="screen active">
@@ -68,13 +78,17 @@
                 <p id="final-score-container"></p>
                 <p id="high-score-container" class="high-score-text"></p>
             </div>
-            <button id="restart-btn">REINTENTAR</button>
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                <button id="restart-btn" style="width: 100%;">REINTENTAR</button>
+                <button id="menu-btn" class="secondary-btn" style="width: 100%;">MENÚ</button>
+            </div>
         </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
 
     <script src="admob-bundle.js"></script>
+    <script src="google-auth-bundle.js"></script>
     <script type="module" src="firebase-init.js"></script>
     <script src="i18n.js"></script>
     <script src="game.js"></script>

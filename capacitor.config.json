@@ -1,5 +1,12 @@
 {
   "appId": "com.nickater.devourer",
   "appName": "Devourer Hole",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "857081135448-r4n44jakpp9lccn73527so10ai1oped1.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
 }

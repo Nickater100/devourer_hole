@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "857081135448",
+    "project_id": "under-hole",
+    "storage_bucket": "under-hole.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:857081135448:android:b55b11203505cf2856a52d",
+        "android_client_info": {
+          "package_name": "com.nickater.devourer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "857081135448-r4n44jakpp9lccn73527so10ai1oped1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxBS-SDcEM3maql3dXLIC8-qBgJwsZawA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "857081135448-r4n44jakpp9lccn73527so10ai1oped1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

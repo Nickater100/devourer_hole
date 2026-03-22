@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, getDocs, query, orderBy, limit, serverTimestamp, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, query, orderBy, limit, serverTimestamp, setDoc, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCUqx74Lgt2VZR30NBLERaoapsu7MFLf2g",
@@ -14,23 +14,47 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+// Force HTTP long-polling instead of WebSockets — required for Capacitor WebView
+const db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    useFetchStreams: false
+});
 const provider = new GoogleAuthProvider();
 
 // Check if returning from redirect login
 getRedirectResult(auth).then((result) => {
     if (result) {
-        console.log("Logged in successfully:", result.user.displayName);
+        console.log("Logged in successfully via redirect:", result.user.displayName);
     }
 }).catch((error) => {
     console.error("Login redirect error:", error);
 });
 
+// Force GoogleAuth to initialize with explicit arguments rather than relying on native parser
+if (window.GoogleAuthPlugin) {
+    window.GoogleAuthPlugin.initialize({
+      clientId: '857081135448-r4n44jakpp9lccn73527so10ai1oped1.apps.googleusercontent.com',
+      scopes: ['profile', 'email'],
+      grantOfflineAccess: true,
+    });
+}
+
 // Expose these methods globally so game.js can call them.
 window.FirebaseAPI = {
     loginWithGoogle: async () => {
         try {
-            await signInWithRedirect(auth, provider);
+            // Check if we have the native Capacitor Google Auth plugin attached
+            if (window.GoogleAuthPlugin && window.CapacitorCore && window.CapacitorCore.isNativePlatform()) {
+                console.log("Trying native Capacitor Google Login...");
+                const googleUser = await window.GoogleAuthPlugin.signIn();
+                console.log("Got idToken from Native:", googleUser.authentication.idToken);
+                // Pass Native Token to Firebase Auth
+                const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+                await signInWithCredential(auth, credential);
+            } else {
+                console.log("Fallback to Web popup login...");
+                await signInWithPopup(auth, provider);
+            }
         } catch (error) {
             console.error("Login Error", error);
         }

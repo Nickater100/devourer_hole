@@ -40,7 +40,8 @@ const translations = {
         loginGoogle: 'Iniciar sesión con Google',
         logout: 'Cerrar sesión',
         loading: 'Cargando...',
-        guest: 'Invitado'
+        guest: 'Invitado',
+        menu: 'MENÚ PRINCIPAL'
     },
     en: {
         title1: 'THE',
@@ -82,7 +83,8 @@ const translations = {
         loginGoogle: 'Sign in with Google',
         logout: 'Sign out',
         loading: 'Loading...',
-        guest: 'Guest'
+        guest: 'Guest',
+        menu: 'MAIN MENU'
     }
 };
 
@@ -115,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Pantalla Game Over (ahora manejado por game.js)
     document.querySelector('#game-over-screen h2').textContent = t.gameOver;
     document.getElementById('restart-btn').textContent = t.retry;
+    document.getElementById('menu-btn').textContent = t.menu;
 
     // Leaderboard
     document.getElementById('ranking-btn').textContent = t.leaderboard;
