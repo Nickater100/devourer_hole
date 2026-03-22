@@ -1036,7 +1036,7 @@ rankingBtn.addEventListener('click', async () => {
                 li.className = 'leaderboard-item';
                 
                 const avatarStr = s.photoURL 
-                    ? `<img src="${s.photoURL}" class="lb-avatar" />`
+                    ? `<img src="${s.photoURL}" class="lb-avatar" referrerpolicy="no-referrer" onerror="this.style.display='none'" />`
                     : `<div class="lb-avatar"></div>`;
 
                 li.innerHTML = `
