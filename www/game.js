@@ -46,7 +46,7 @@ setTimeout(async () => {
         try {
             await window.AdMobPlugin.initialize({
                 requestTrackingAuthorization: true,
-                initializeForTesting: true
+                initializeForTesting: false
             });
             isAdMobInitialized = true;
             console.log("AdMob initialized successfully");
@@ -60,8 +60,8 @@ async function showInterstitialAd() {
     if (!isAdMobInitialized) return;
     try {
         await window.AdMobPlugin.prepareInterstitial({
-            adId: 'ca-app-pub-3940256099942544/1033173712', // ID de prueba de Google
-            isTesting: true
+            adId: 'ca-app-pub-1547228404922892/8976645036', // Su ID real de AdMob
+            isTesting: false
         });
         await window.AdMobPlugin.showInterstitial();
     } catch (e) {
@@ -903,13 +903,16 @@ function gameOver(reason) {
         highScore = score;
         localStorage.setItem('devourer_high_score', highScore);
         startHighScoreDisplay.innerText = highScore;
+        
+        // Guardar en la nube si está logueado y es un nuevo récord
+        if (window.FirebaseAPI && currentUser) {
+            console.log(`[HIGHSCORE] Local check passed: ${score} > Old ${highScore - score}`); 
+            window.FirebaseAPI.saveScore(score);
+        }
+    } else {
+        console.log(`[HIGHSCORE] Local check skipped: ${score} is not higher than ${highScore}`);
     }
     gameOverHighScoreDisplay.innerText = `${t.bestScore}: ${highScore}`;
-
-    // Guardar en la nube si está logueado
-    if (window.FirebaseAPI && currentUser) {
-        window.FirebaseAPI.saveScore(score);
-    }
 
     // Lógica de Anuncios: Mostrar un Interstitial cada 3 muertes
     deathsCount++;
@@ -1058,12 +1061,20 @@ const fbInitInterval = setInterval(() => {
     if (window.FirebaseAPI) {
         clearInterval(fbInitInterval);
         
-        window.FirebaseAPI.onAuthChange((user) => {
+        window.FirebaseAPI.onAuthChange(async (user) => {
             currentUser = user;
             if (user) {
                 loginBtn.innerHTML = `${t.logout} (${user.displayName || t.guest})`;
                 loginBtn.style.color = 'var(--danger)';
                 loginBtn.style.borderColor = 'rgba(233, 69, 96, 0.4)';
+
+                // Sincronizar HighScore local con la nube al loguearse
+                const cloudScore = await window.FirebaseAPI.getUserScore(user.uid);
+                if (cloudScore > highScore) {
+                    highScore = cloudScore;
+                    localStorage.setItem('devourer_high_score', highScore);
+                    if (startHighScoreDisplay) startHighScoreDisplay.innerText = highScore;
+                }
             } else {
                 loginBtn.innerHTML = t.loginGoogle;
                 loginBtn.style.color = '#fff';

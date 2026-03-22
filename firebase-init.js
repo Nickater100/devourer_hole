@@ -65,17 +65,37 @@ window.FirebaseAPI = {
     saveScore: async (score) => {
         if (!auth.currentUser) return;
         try {
+            console.log("Attempting to save high score: " + score);
             const userRef = doc(db, 'leaderboard', auth.currentUser.uid);
-            // game.js already checked score > localHighScore before calling this.
-            // Write directly — avoids a getDoc round-trip that fails if Firestore
-            // hasn't fully established its connection yet.
-            await setDoc(userRef, {
-                username: auth.currentUser.displayName || "Anonymous",
-                photoURL: auth.currentUser.photoURL || "",
-                score: score,
-                timestamp: serverTimestamp()
-            });
-            console.log("New high score saved to Cloud: " + score);
+            
+            // Double-check: only write if score is higher than current cloud score.
+            // Race against a 10s timeout to avoid hangs.
+            const timeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Save score timeout")), 10000)
+            );
+            
+            let cloudHighScore = 0;
+            try {
+                const docSnap = await Promise.race([getDoc(userRef), timeout]);
+                if (docSnap.exists()) {
+                    cloudHighScore = docSnap.data().score || 0;
+                }
+            } catch (e) {
+                console.warn("Could not fetch current cloud score, proceeding with caution.", e);
+                // If it fails (offline), we trust the local check in game.js and try to write.
+            }
+
+            if (score > cloudHighScore) {
+                await setDoc(userRef, {
+                    username: auth.currentUser.displayName || "Anonymous",
+                    photoURL: auth.currentUser.photoURL || "",
+                    score: score,
+                    timestamp: serverTimestamp()
+                });
+                console.log("New high score saved to Cloud! (" + score + " > " + cloudHighScore + ")");
+            } else {
+                console.log("Cloud score (" + cloudHighScore + ") is higher or equal to new score (" + score + "). No update needed.");
+            }
         } catch (error) {
             console.error("Error saving score", error);
         }
@@ -98,6 +118,19 @@ window.FirebaseAPI = {
         } catch (error) {
             console.error("Error fetching leaderboard", error);
             return [];
+        }
+    },
+    getUserScore: async (uid) => {
+        try {
+            const userRef = doc(db, 'leaderboard', uid);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists()) {
+                return docSnap.data().score || 0;
+            }
+            return 0;
+        } catch (error) {
+            console.error("Error fetching user score", error);
+            return 0;
         }
     },
     onAuthChange: (callback) => {

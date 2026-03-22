@@ -7,6 +7,9 @@
       "scopes": ["profile", "email"],
       "serverClientId": "857081135448-r4n44jakpp9lccn73527so10ai1oped1.apps.googleusercontent.com",
       "forceCodeForRefreshToken": true
+    },
+    "AdMob": {
+      "appId": "ca-app-pub-1547228404922892~8330345023"
     }
   }
 }
