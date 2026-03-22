@@ -66,35 +66,34 @@ window.FirebaseAPI = {
         if (!auth.currentUser) return;
         try {
             const userRef = doc(db, 'leaderboard', auth.currentUser.uid);
-            
-            // Validate if new score is higher than current saved score
-            const docSnap = await getDoc(userRef);
-            let currentHighScore = 0;
-            if (docSnap.exists()) {
-                currentHighScore = docSnap.data().score || 0;
-            }
-
-            if (score > currentHighScore) {
-                await setDoc(userRef, {
-                    username: auth.currentUser.displayName || "Anonymous",
-                    photoURL: auth.currentUser.photoURL || "",
-                    score: score,
-                    timestamp: serverTimestamp()
-                });
-                console.log("New high score saved to Cloud!");
-            }
+            // game.js already checked score > localHighScore before calling this.
+            // Write directly — avoids a getDoc round-trip that fails if Firestore
+            // hasn't fully established its connection yet.
+            await setDoc(userRef, {
+                username: auth.currentUser.displayName || "Anonymous",
+                photoURL: auth.currentUser.photoURL || "",
+                score: score,
+                timestamp: serverTimestamp()
+            });
+            console.log("New high score saved to Cloud: " + score);
         } catch (error) {
             console.error("Error saving score", error);
         }
     },
     getLeaderboard: async () => {
         try {
+            console.log("Fetching leaderboard...");
             const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(50));
-            const querySnapshot = await getDocs(q);
+            // Race against a 10s timeout — Firestore can hang if connection not yet established
+            const timeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Leaderboard fetch timeout")), 10000)
+            );
+            const querySnapshot = await Promise.race([getDocs(q), timeout]);
             const scores = [];
             querySnapshot.forEach((doc) => {
                 scores.push(doc.data());
             });
+            console.log("Leaderboard fetched: " + scores.length + " entries");
             return scores;
         } catch (error) {
             console.error("Error fetching leaderboard", error);
