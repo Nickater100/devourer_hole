@@ -1073,9 +1073,18 @@ const fbInitInterval = setInterval(() => {
                 // Sincronizar HighScore local con la nube al loguearse
                 const cloudScore = await window.FirebaseAPI.getUserScore(user.uid);
                 if (cloudScore > highScore) {
+                    // La nube tiene un puntaje mejor, lo bajamos al dispositivo
                     highScore = cloudScore;
                     localStorage.setItem('devourer_high_score', highScore);
                     if (startHighScoreDisplay) startHighScoreDisplay.innerText = highScore;
+                } else if (highScore > cloudScore) {
+                    // El dispositivo tiene un puntaje mejor, lo subimos a la nube
+                    console.log(`Subiendo récord local (${highScore}) a la nube (${cloudScore})`);
+                    await window.FirebaseAPI.saveScore(highScore);
+                    // Avisar al usuario si está en el menú principal
+                    if (startScreen.classList.contains('active')) {
+                        setTimeout(() => alert(t.scoreSynced || '¡Récord local sincronizado a la nube!'), 500);
+                    }
                 }
             } else {
                 loginBtn.innerHTML = t.loginGoogle;
