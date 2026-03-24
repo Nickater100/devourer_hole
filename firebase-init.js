@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, getDocs, query, orderBy, limit, serverTimestamp, setDoc, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, orderBy, limit, serverTimestamp, setDoc, doc, getDoc, initializeFirestore, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCUqx74Lgt2VZR30NBLERaoapsu7MFLf2g",
@@ -61,6 +61,28 @@ window.FirebaseAPI = {
     },
     logout: async () => {
         await signOut(auth);
+    },
+    deleteAccount: async (uid) => {
+        try {
+            console.log("Deleting user account data:", uid);
+            const userRef = doc(db, 'leaderboard', uid);
+            await deleteDoc(userRef);
+            
+            // Delete user auth entry (fallback to local signout if credentials are stale)
+            const user = auth.currentUser;
+            if (user && user.uid === uid) {
+                try {
+                    await user.delete();
+                    console.log("Auth user deleted.");
+                } catch (delErr) {
+                    console.warn("Could not delete Auth user (may require recent login), signing out instead.", delErr);
+                    await signOut(auth);
+                }
+            }
+        } catch (error) {
+            console.error("Error deleting account", error);
+            throw error;
+        }
     },
     saveScore: async (score) => {
         if (!auth.currentUser) return;

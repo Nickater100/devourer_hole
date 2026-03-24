@@ -22,6 +22,7 @@ const storeItemsContainer = document.getElementById('store-items-container');
 
 const rankingBtn = document.getElementById('ranking-btn');
 const loginBtn = document.getElementById('login-btn');
+const deleteAccountBtn = document.getElementById('delete-account-btn');
 const leaderboardScreen = document.getElementById('leaderboard-screen');
 const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
 const leaderboardList = document.getElementById('leaderboard-list');
@@ -1067,6 +1068,7 @@ const fbInitInterval = setInterval(() => {
                 loginBtn.innerHTML = `${t.logout} (${user.displayName || t.guest})`;
                 loginBtn.style.color = 'var(--danger)';
                 loginBtn.style.borderColor = 'rgba(233, 69, 96, 0.4)';
+                if (deleteAccountBtn) deleteAccountBtn.style.display = 'block';
 
                 // Sincronizar HighScore local con la nube al loguearse
                 const cloudScore = await window.FirebaseAPI.getUserScore(user.uid);
@@ -1079,6 +1081,7 @@ const fbInitInterval = setInterval(() => {
                 loginBtn.innerHTML = t.loginGoogle;
                 loginBtn.style.color = '#fff';
                 loginBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                if (deleteAccountBtn) deleteAccountBtn.style.display = 'none';
             }
         });
 
@@ -1089,6 +1092,26 @@ const fbInitInterval = setInterval(() => {
                 window.FirebaseAPI.loginWithGoogle();
             }
         });
+
+        if (deleteAccountBtn) {
+            deleteAccountBtn.addEventListener('click', async () => {
+                if (confirm(t.deleteAccountConfirm)) {
+                    if (currentUser && window.FirebaseAPI) {
+                        try {
+                            // Ensure local state is wiped so it doesn't re-upload on next death
+                            highScore = 0;
+                            localStorage.removeItem('devourer_high_score');
+                            if (startHighScoreDisplay) startHighScoreDisplay.innerText = 0;
+                            
+                            await window.FirebaseAPI.deleteAccount(currentUser.uid);
+                            alert(t.accountDeleted);
+                        } catch (e) {
+                            alert("Error: " + e.message);
+                        }
+                    }
+                }
+            });
+        }
     }
 }, 100);
 
