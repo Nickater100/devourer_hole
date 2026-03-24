@@ -19,8 +19,19 @@ Game progress (scores and coins) is stored locally on your device and may be syn
 ## 4. Children's Privacy
 Our App does not address anyone under the age of 13. We do not knowingly collect personally identifiable information from children.
 
-## 5. Changes to This Privacy Policy
-We may update our Privacy Policy from time to time. You are advised to review this page periodically for any changes.
+## 6. Account and Data Deletion
 
-## 6. Contact Us
-If you have any questions about this Privacy Policy, please contact us.
+In compliance with Google Play Developer policies, users of **Angry Ball** (developed by Nickater) have the right to request the deletion of their account and associated data.
+
+**What data is deleted?**
+If you request account deletion, we will permanently delete from our Firebase database:
+*   Your associated Google Account ID.
+*   Your display name.
+*   Your high score on the global leaderboard.
+Local game data (coins, unlocked skins) stored on your device must be cleared manually by uninstalling the app or clearing the app's data in Android Settings.
+
+**How to request data deletion:**
+To request the deletion of your account and data, please send an email to **[EMAIL_ADDRESS]** with the subject "Angry Ball - Data Deletion Request". Please include the exact name that appears on the global leaderboard so we can identify and remove your record. We will process your request within 7 business days.
+
+## 7. Contact Us
+If you have any questions about this Privacy Policy, please contact us at **[EMAIL_ADDRESS]**.
