@@ -1,6 +1,6 @@
 {
   "appId": "com.nickater.devourer",
-  "appName": "Devourer Hole",
+  "appName": "Angry Ball",
   "webDir": "www",
   "plugins": {
     "GoogleAuth": {

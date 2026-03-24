@@ -1,8 +1,8 @@
 // --- Internationalization (i18n) ---
 const translations = {
     es: {
-        title1: 'EL AGUJERO',
-        title2: 'DEVORADOR',
+        title1: 'ANGRY',
+        title2: 'BALL',
         subtitle: 'Trágate los bloques enemigos.<br>Protege la esfera interactiva.<br><span class="danger">Persiguen al objetivo. ¡Defiéndelo!</span>',
         highScore: 'Mejor Puntaje',
         play: 'JUGAR',
@@ -44,8 +44,8 @@ const translations = {
         menu: 'MENÚ PRINCIPAL'
     },
     en: {
-        title1: 'THE',
-        title2: 'DEVOURER',
+        title1: 'ANGRY',
+        title2: 'BALL',
         subtitle: 'Swallow enemy blocks.<br>Protect the interactive sphere.<br><span class="danger">They chase the target. Defend it!</span>',
         highScore: 'Best Score',
         play: 'PLAY',
