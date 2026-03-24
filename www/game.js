@@ -75,6 +75,7 @@ let animationId;
 let lastInvincibleMilestone = 0;
 let invincibleBlocks = [];
 let particles = [];
+let lastRocketMilestone = 4; // Comienza a generar a partir de los 100 puntos (100/20 = 5 > 4)
 
 // --- Shop & Upgrades Data ---
 const SHOP_ITEMS = [
@@ -328,7 +329,21 @@ const VIP = {
         this.timer += timeScale;
         if (this.timer > 60 || (this.vx === 0 && this.vy === 0)) {
             this.timer = 0;
-            const angle = Math.random() * Math.PI * 2;
+            // Calcular ángulo hacia el centro aprox. para no quedarse estancado en los bordes
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const distToCenter = Math.sqrt((cx - this.x) ** 2 + (cy - this.y) ** 2);
+            
+            let angle;
+            if (distToCenter > canvas.width * 0.3) {
+                // Si está muy lejos del centro (cerca de bordes), forzar dirección general hacia adentro
+                const centerAngle = Math.atan2(cy - this.y, cx - this.x);
+                angle = centerAngle + (Math.random() - 0.5) * Math.PI; // +/- 90 grados
+            } else {
+                // Movimiento normal aleatorio
+                angle = Math.random() * Math.PI * 2;
+            }
+
             this.vx = Math.cos(angle) * this.speed;
             this.vy = Math.sin(angle) * this.speed;
         }
@@ -403,17 +418,37 @@ function applyCombo() {
 }
 
 class Block {
-    constructor(x, y) {
+    constructor(x, y, isGhost = false, isRocket = false) {
         this.x = x;
         this.y = y;
         this.width = blocksConfig.width;
         this.height = blocksConfig.height;
-        this.color = enemyColors[Math.floor(Math.random() * enemyColors.length)];
+        this.isGhost = isGhost;
+        this.isRocket = isRocket;
+        
+        if (this.isGhost) {
+            this.color = '#bdc3c7'; // Ghostly gray/white
+            this.phaseTimer = Math.random() * Math.PI * 2;
+            this.isSolid = true;
+            this.baseSpeed = 0.6 + Math.random() * 0.4; // Ligeramente más rápidos
+        } else if (this.isRocket) {
+            this.color = '#ff4757'; // Rojo/Naranja misil
+            this.isSolid = true;
+            // Cohete SUPER RÁPIDO
+            this.baseSpeed = 1.8 + Math.random() * 0.4; 
+            // Forma alargada y aerodinámica
+            this.width = 16;
+            this.height = 36;
+        } else {
+            this.color = enemyColors[Math.floor(Math.random() * enemyColors.length)];
+            this.isSolid = true;
+            this.baseSpeed = 0.5 + Math.random() * 0.5;
+        }
+        
         this.active = true;
         this.scale = 1;
         this.falling = false;
         this.rotation = Math.random() * Math.PI * 2;
-        this.baseSpeed = 0.5 + Math.random() * 0.5;
     }
 
     update() {
@@ -435,10 +470,26 @@ class Block {
                 // Aplicar sistema de cadena y puntuación
                 applyCombo();
                 score += currentMultiplier;
+                
+                // Puntos extra
+                if (this.isGhost) score += 2;
+                if (this.isRocket) score += 3; // Eliminar el misil da más puntos
 
                 if (score % 10 === 0) speedMultiplier += 0.08;
             }
             return;
+        }
+
+        if (this.isRocket && !this.falling && Math.random() < 0.4) {
+            // Estela de fuego
+            spawnParticles(this.x, this.y, '#ff6b81', 1);
+            spawnParticles(this.x, this.y, '#ffa502', 1);
+        }
+
+        if (this.isGhost) {
+            this.phaseTimer += 0.04 * timeScale;
+            // Visible y sólido cuando el seno ajustado es mayor que -0.2 (está invisible menos tiempo del que está visible)
+            this.isSolid = Math.sin(this.phaseTimer) > -0.2;
         }
 
         const dx = VIP.x - this.x;
@@ -450,34 +501,42 @@ class Block {
             this.y += (dy / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
         }
 
-        this.rotation += 0.05 * timeScale;
+        if (this.isRocket) {
+            // Apuntar directamente hacia el jugador (+ PI/2 porque rect está dibujado vertical)
+            this.rotation = Math.atan2(dy, dx) + Math.PI / 2;
+        } else {
+            this.rotation += 0.05 * timeScale;
+        }
 
         const hdx = this.x - Hole.x;
         const hdy = this.y - Hole.y;
         const distToHole = Math.sqrt(hdx * hdx + hdy * hdy);
 
-        // Succión del Imán (Upgrade)
-        if (upgrades.magnet && distToHole < Hole.radius * 2 && !this.falling) {
+        // Succión del Imán (Upgrade) - Solo si es sólido
+        if (upgrades.magnet && distToHole < Hole.radius * 2 && !this.falling && this.isSolid) {
             const pullForce = 0.05;
             this.x -= (hdx / distToHole) * pullForce * (Hole.radius * 2 - distToHole) * 0.1;
             this.y -= (hdy / distToHole) * pullForce * (Hole.radius * 2 - distToHole) * 0.1;
         }
 
-        if (distToHole < Hole.radius - 8) {
+        if (distToHole < Hole.radius - 8 && this.isSolid) {
             this.falling = true;
         }
 
+        // VIP collision (El fantasma mata al VIP incuso cuando está invisible)
         if (distToVIP < VIP.radius + this.width / 2 && !this.falling) {
             if (VIP.hasShield) {
                 VIP.hasShield = false;
-                this.falling = true; // El bloque que golpeó el escudo es destruido
+                this.falling = true; // El bloque que golpeó el escudo es destruido (aunque sea invisible, el escudo es de plasma)
                 screenShakeTime = 20;
                 flashTime = 5;
                 spawnParticles(VIP.x, VIP.y, '#00f2fe', 20);
-                // Sonido de escudo roto o impacto? Reutilizamos sonido por ahora
                 playBossDestroySound();
             } else {
-                gameOver(t.deathEnemy);
+                let deathMsg = t.deathEnemy;
+                if (this.isGhost) deathMsg = t.deathGhost || 'Death by Ghost';
+                if (this.isRocket) deathMsg = t.deathRocket || 'Direct Rocket impact!';
+                gameOver(deathMsg);
             }
         }
     }
@@ -490,8 +549,17 @@ class Block {
         ctx.rotate(this.rotation);
         ctx.scale(this.scale, this.scale);
 
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
+        if (this.isGhost && !this.falling) {
+            ctx.globalAlpha = this.isSolid ? 0.9 : 0.25;
+            ctx.shadowBlur = this.isSolid ? 15 : 0;
+            ctx.shadowColor = '#ffffff';
+        } else if (this.isRocket) {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ff4757';
+        } else {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+        }
 
         ctx.fillStyle = this.color;
         ctx.beginPath();
@@ -645,14 +713,46 @@ function drawGrid() {
 
 function spawnInvincible() {
     let spawnX, spawnY;
-    if (Math.random() > 0.5) {
-        spawnX = Math.random() > 0.5 ? -30 : canvas.width + 30;
-        spawnY = Math.random() * canvas.height;
-    } else {
-        spawnX = Math.random() * canvas.width;
-        spawnY = Math.random() > 0.5 ? -30 : canvas.height + 30;
+    let valid = false;
+    let attempts = 0;
+    while (!valid && attempts < 10) {
+        if (Math.random() > 0.5) {
+            spawnX = Math.random() > 0.5 ? -30 : canvas.width + 30;
+            spawnY = Math.random() * canvas.height;
+        } else {
+            spawnX = Math.random() * canvas.width;
+            spawnY = Math.random() > 0.5 ? -30 : canvas.height + 30;
+        }
+        
+        // Evitar que aparezca encima del VIP
+        const dx = spawnX - VIP.x;
+        const dy = spawnY - VIP.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 200) {
+            valid = true;
+        }
+        attempts++;
     }
     invincibleBlocks.push(new InvincibleBlock(spawnX, spawnY));
+}
+
+function spawnRocket() {
+    let spawnX, spawnY;
+    let valid = false;
+    let attempts = 0;
+    while (!valid && attempts < 20) {
+        const edge = Math.floor(Math.random() * 4);
+        const padding = 60;
+        if (edge === 0) { spawnX = Math.random() * canvas.width; spawnY = -padding; }
+        else if (edge === 1) { spawnX = canvas.width + padding; spawnY = Math.random() * canvas.height; }
+        else if (edge === 2) { spawnX = Math.random() * canvas.width; spawnY = canvas.height + padding; }
+        else { spawnX = -padding; spawnY = Math.random() * canvas.height; }
+
+        const dx = spawnX - VIP.x;
+        const dy = spawnY - VIP.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 350) { valid = true; }
+        attempts++;
+    }
+    blocks.push(new Block(spawnX, spawnY, false, true));
 }
 
 function spawnBlock() {
@@ -662,23 +762,43 @@ function spawnBlock() {
     if (blocksConfig.frameCount >= currentSpawnRate) {
         blocksConfig.frameCount = 0;
         let spawnX, spawnY;
-        const edge = Math.floor(Math.random() * 4);
-        const padding = 50;
+        let valid = false;
+        let attempts = 0;
 
-        if (edge === 0) {
-            spawnX = Math.random() * canvas.width;
-            spawnY = -padding;
-        } else if (edge === 1) {
-            spawnX = canvas.width + padding;
-            spawnY = Math.random() * canvas.height;
-        } else if (edge === 2) {
-            spawnX = Math.random() * canvas.width;
-            spawnY = canvas.height + padding;
-        } else {
-            spawnX = -padding;
-            spawnY = Math.random() * canvas.height;
+        while (!valid && attempts < 10) {
+            const edge = Math.floor(Math.random() * 4);
+            const padding = 50;
+
+            if (edge === 0) {
+                spawnX = Math.random() * canvas.width;
+                spawnY = -padding;
+            } else if (edge === 1) {
+                spawnX = canvas.width + padding;
+                spawnY = Math.random() * canvas.height;
+            } else if (edge === 2) {
+                spawnX = Math.random() * canvas.width;
+                spawnY = canvas.height + padding;
+            } else {
+                spawnX = -padding;
+                spawnY = Math.random() * canvas.height;
+            }
+
+            // Distancia de seguridad para evitar Instakill
+            const dx = spawnX - VIP.x;
+            const dy = spawnY - VIP.y;
+            if (Math.sqrt(dx * dx + dy * dy) > 250) {
+                valid = true;
+            }
+            attempts++;
         }
-        blocks.push(new Block(spawnX, spawnY));
+        
+        let isGhost = false;
+        // Empiezan a aparecer fantasmas después de los 50 puntos
+        if (score > 50 && Math.random() < 0.20) {
+            isGhost = true;
+        }
+        
+        blocks.push(new Block(spawnX, spawnY, isGhost));
     }
 }
 
@@ -735,6 +855,12 @@ function update() {
 
     spawnBlock();
 
+    // Logica del Cohete (Rocket) cada 20 puntos a partir de 100
+    const currentRocketMilestone = Math.floor(score / 20);
+    if (score >= 100 && currentRocketMilestone > lastRocketMilestone) {
+        lastRocketMilestone = currentRocketMilestone;
+        spawnRocket();
+    }
 
     const currentMilestone = Math.floor(score / 50);
     if (currentMilestone > lastInvincibleMilestone) {
@@ -848,6 +974,7 @@ function startGame() {
     gameState = 'PLAYING';
 
     score = 0;
+    lastRocketMilestone = 4; // Reinicia el hito del cohete al empezar
     speedMultiplier = 1;
     blocks = [];
     invincibleBlocks = [];
