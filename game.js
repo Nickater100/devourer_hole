@@ -75,7 +75,7 @@ let animationId;
 let lastInvincibleMilestone = 0;
 let invincibleBlocks = [];
 let particles = [];
-let lastRocketMilestone = 4; // Comienza a generar a partir de los 100 puntos (100/20 = 5 > 4)
+let lastRocketMilestone = 0; // Comienza a generar a partir de los 150. (150-50)/100 = 1
 
 // --- Shop & Upgrades Data ---
 const SHOP_ITEMS = [
@@ -138,6 +138,18 @@ function playDestroySound() {
     gain.connect(audioCtx.destination);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.15);
+}
+
+function triggerVibration(pattern) {
+    // navigator.vibrate is natively supported in Android Chrome/WebViews 
+    // and requires no extra Capacitor plugins for basic patterns.
+    if (navigator.vibrate) {
+        try {
+            navigator.vibrate(pattern);
+        } catch (e) {
+            console.error("Vibration failed", e);
+        }
+    }
 }
 
 function playBossDestroySound() {
@@ -439,6 +451,11 @@ class Block {
             // Forma alargada y aerodinámica
             this.width = 16;
             this.height = 36;
+            // Modo Orbita Inicial
+            this.rocketState = 'orbiting';
+            this.rocketOrbitTime = 250; // 4 segundos aprox
+            this.orbitAngle = Math.atan2(this.y - canvas.height/2, this.x - canvas.width/2);
+            this.orbitRadius = Math.sqrt((this.x - canvas.width/2)**2 + (this.y - canvas.height/2)**2);
         } else {
             this.color = enemyColors[Math.floor(Math.random() * enemyColors.length)];
             this.isSolid = true;
@@ -496,15 +513,34 @@ class Block {
         const dy = VIP.y - this.y;
         const distToVIP = Math.sqrt(dx * dx + dy * dy);
 
-        if (distToVIP > 0) {
+        if (this.isRocket) {
+            if (this.rocketState === 'orbiting') {
+                this.orbitAngle += 0.05 * timeScale * speedMultiplier;
+                // Reducir el radio para que entre en la pantalla
+                if (this.orbitRadius > canvas.width * 0.35) {
+                    this.orbitRadius -= 2 * timeScale;
+                }
+                this.x = canvas.width/2 + Math.cos(this.orbitAngle) * this.orbitRadius;
+                this.y = canvas.height/2 + Math.sin(this.orbitAngle) * this.orbitRadius;
+                
+                // Rotación apuntando en dirección de la órbita (tangente +/- ajuste)
+                this.rotation = this.orbitAngle + Math.PI;
+
+                this.rocketOrbitTime -= timeScale;
+                if (this.rocketOrbitTime <= 0) {
+                    this.rocketState = 'attack';
+                }
+            } else {
+                if (distToVIP > 0) {
+                    this.x += (dx / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
+                    this.y += (dy / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
+                }
+                // Apuntar directamente hacia el VIP
+                this.rotation = Math.atan2(dy, dx) + Math.PI / 2;
+            }
+        } else if (distToVIP > 0) {
             this.x += (dx / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
             this.y += (dy / distToVIP) * this.baseSpeed * speedMultiplier * timeScale;
-        }
-
-        if (this.isRocket) {
-            // Apuntar directamente hacia el jugador (+ PI/2 porque rect está dibujado vertical)
-            this.rotation = Math.atan2(dy, dx) + Math.PI / 2;
-        } else {
             this.rotation += 0.05 * timeScale;
         }
 
@@ -597,6 +633,7 @@ class InvincibleBlock {
                 this.active = false;
                 spawnParticles(Hole.x, Hole.y, this.color, 30);
                 playBossDestroySound();
+                triggerVibration([100, 50, 100]); // Patrón explosión de jefe
                 score += 10;
                 applyCombo();
                 screenShakeTime = 15;
@@ -793,8 +830,8 @@ function spawnBlock() {
         }
         
         let isGhost = false;
-        // Empiezan a aparecer fantasmas después de los 50 puntos
-        if (score > 50 && Math.random() < 0.20) {
+        // Empiezan a aparecer fantasmas después de los 25 puntos
+        if (score > 25 && Math.random() < 0.20) {
             isGhost = true;
         }
         
@@ -855,9 +892,9 @@ function update() {
 
     spawnBlock();
 
-    // Logica del Cohete (Rocket) cada 20 puntos a partir de 100
-    const currentRocketMilestone = Math.floor(score / 20);
-    if (score >= 100 && currentRocketMilestone > lastRocketMilestone) {
+    // Logica del Cohete (Rocket) cada 100 puntos a partir de 150
+    const currentRocketMilestone = Math.floor((score - 50) / 100);
+    if (score >= 150 && currentRocketMilestone > lastRocketMilestone) {
         lastRocketMilestone = currentRocketMilestone;
         spawnRocket();
     }
@@ -974,7 +1011,7 @@ function startGame() {
     gameState = 'PLAYING';
 
     score = 0;
-    lastRocketMilestone = 4; // Reinicia el hito del cohete al empezar
+    lastRocketMilestone = 0; // Reinicia el hito del cohete al empezar
     speedMultiplier = 1;
     blocks = [];
     invincibleBlocks = [];
@@ -1016,6 +1053,8 @@ function startGame() {
 }
 
 function gameOver(reason) {
+    triggerVibration([200, 100, 200, 100, 400]); // Patrón pesado de derrota
+
     gameState = 'GAMEOVER';
     hud.classList.remove('active');
     gameOverScreen.classList.add('active');
