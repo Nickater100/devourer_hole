@@ -44,4 +44,11 @@ try {
     console.error('esbuild failed for google auth', e);
 }
 
+console.log('Running esbuild to bundle Haptics plugin...');
+try {
+    execSync('npx esbuild haptics-init.js --bundle --outfile=www/haptics-bundle.js', { stdio: 'inherit' });
+} catch (e) {
+    console.error('esbuild failed for haptics', e);
+}
+
 console.log('Build complete!');

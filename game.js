@@ -140,15 +140,24 @@ function playDestroySound() {
     osc.stop(audioCtx.currentTime + 0.15);
 }
 
-function triggerVibration(pattern) {
-    // navigator.vibrate is natively supported in Android Chrome/WebViews 
-    // and requires no extra Capacitor plugins for basic patterns.
-    if (navigator.vibrate) {
+async function triggerVibration(pattern) {
+    if (window.HapticsPlugin) {
         try {
-            navigator.vibrate(pattern);
+            if (pattern === 'heavy') {
+                // Fuerte impacto para perder
+                await window.HapticsPlugin.vibrate({ duration: 500 });
+            } else {
+                // Impacto ligero para destruir boss
+                await window.HapticsPlugin.vibrate({ duration: 250 });
+            }
         } catch (e) {
-            console.error("Vibration failed", e);
+            console.error("Native Haptics failed", e);
         }
+    } else if (navigator.vibrate) {
+        try {
+            if (pattern === 'heavy') navigator.vibrate([200, 100, 200, 100, 400]);
+            else navigator.vibrate([100, 50, 100]);
+        } catch (e) {}
     }
 }
 
@@ -633,7 +642,7 @@ class InvincibleBlock {
                 this.active = false;
                 spawnParticles(Hole.x, Hole.y, this.color, 30);
                 playBossDestroySound();
-                triggerVibration([100, 50, 100]); // Patrón explosión de jefe
+                triggerVibration('light'); // Patrón explosión de jefe
                 score += 10;
                 applyCombo();
                 screenShakeTime = 15;
@@ -1053,7 +1062,7 @@ function startGame() {
 }
 
 function gameOver(reason) {
-    triggerVibration([200, 100, 200, 100, 400]); // Patrón pesado de derrota
+    triggerVibration('heavy'); // Patrón pesado de derrota
 
     gameState = 'GAMEOVER';
     hud.classList.remove('active');
