@@ -28,12 +28,19 @@ const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
 const leaderboardList = document.getElementById('leaderboard-list');
 const menuBtn = document.getElementById('menu-btn');
 const rewardedAdBtn = document.getElementById('rewarded-ad-btn');
+const storeTabs = document.getElementById('store-tabs');
 
 // Game State
 let gameState = 'START';
 let score = 0;
 let currentUser = null;
+let activeShopCategory = 'skin';
+let canRevive = true; // Se resetea al empezar partida
+let pendingRewardAction = 'coins'; // 'coins' o 'revive'
+let reviveTimerInterval = null;
+
 let highScore = parseInt(localStorage.getItem('devourer_high_score')) || 0;
+
 if (startHighScoreDisplay) startHighScoreDisplay.innerText = highScore;
 
 let totalCoins = parseInt(localStorage.getItem('devourer_total_coins')) || 0;
@@ -59,6 +66,12 @@ setTimeout(async () => {
             // Función centralizada para otorgar la recompensa
             const grantReward = (reward) => {
                 console.log("[ADMOB] Reward received event triggered!", reward);
+                
+                if (pendingRewardAction === 'revive') {
+                    revivePlayer();
+                    return;
+                }
+
                 totalCoins += 100;
                 localStorage.setItem('devourer_total_coins', totalCoins);
                 if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
@@ -151,11 +164,27 @@ const SHOP_ITEMS = [
     { id: 'skin-rainbow', type: 'skin', price: 2500, icon: 'icon-rainbow' },
     { id: 'upgrade-shield', type: 'upgrade', price: 1500, icon: 'icon-shield', value: '🛡️' },
     { id: 'upgrade-size', type: 'upgrade', price: 1000, icon: 'icon-size', value: '' },
-    { id: 'upgrade-magnet', type: 'upgrade', price: 1200, icon: 'icon-magnet', value: '🧲' }
+    { id: 'upgrade-magnet', type: 'upgrade', price: 1200, icon: 'icon-magnet', value: '🧲' },
+    { id: 'bg-default', type: 'background', price: 0, icon: 'icon-bg-default' },
+    { id: 'bg-fire', type: 'background', price: 1500, icon: 'icon-bg-fire' },
+    { id: 'bg-space', type: 'background', price: 2000, icon: 'icon-bg-space' }
 ];
 
-let ownedItems = JSON.parse(localStorage.getItem('devourer_owned_items')) || ['skin-default'];
+let ownedItems = JSON.parse(localStorage.getItem('devourer_owned_items')) || ['skin-default', 'bg-default'];
 let equippedSkin = localStorage.getItem('devourer_equipped_skin') || 'skin-default';
+let equippedBackground = localStorage.getItem('devourer_equipped_background') || 'bg-default';
+
+// Estrellas estáticas para el fondo espacial
+const spaceStars = [];
+for (let i = 0; i < 100; i++) {
+    spaceStars.push({
+        x: Math.random() * 2000, // Area grande para scroll/parallax si se añade después
+        y: Math.random() * 2000,
+        size: Math.random() * 2 + 1,
+        opacity: Math.random() * 0.5 + 0.3
+    });
+}
+
 // Las mejoras se compran una vez y se activan permanentemente
 let upgrades = JSON.parse(localStorage.getItem('devourer_upgrades')) || {
     shield: false,
@@ -808,8 +837,54 @@ class InvincibleBlock {
     }
 }
 
-function drawGrid() {
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+function drawBackground() {
+    if (equippedBackground === 'bg-fire') {
+        // Fondo de Fuego
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#1a0605');
+        grad.addColorStop(1, '#3d0c02');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Brillo ambiental rojizo
+        ctx.fillStyle = 'rgba(231, 76, 60, 0.05)';
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, canvas.height, canvas.width, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // El grid se dibuja muy tenue en rojo
+        ctx.strokeStyle = 'rgba(231, 76, 60, 0.1)';
+    } else if (equippedBackground === 'bg-space') {
+        // Fondo de Espacio
+        ctx.fillStyle = '#0b0d17';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Estrellas
+        ctx.fillStyle = '#ffffff';
+        spaceStars.forEach(s => {
+            // Parallax suave basado en la posición del Hole (opcional, por ahora fijo)
+            ctx.globalAlpha = s.opacity;
+            ctx.beginPath();
+            ctx.arc(s.x % canvas.width, s.y % canvas.height, s.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+        
+        // Nebulosa tenue
+        const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width);
+        grad.addColorStop(0, 'rgba(102, 51, 153, 0.1)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // El grid se dibuja muy tenue en azul
+        ctx.strokeStyle = 'rgba(52, 152, 219, 0.1)';
+    } else {
+        // Fondo Default (Grid)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    }
+
+    // Dibujar el grid común
     ctx.lineWidth = 1;
     const gridSize = 50;
     ctx.beginPath();
@@ -822,6 +897,10 @@ function drawGrid() {
         ctx.lineTo(canvas.width, y);
     }
     ctx.stroke();
+}
+
+function drawGrid() {
+    drawBackground();
 }
 
 function spawnInvincible() {
@@ -1121,8 +1200,14 @@ function startGame() {
     VIP.vy = 0;
     VIP.timer = 60;
 
+    // Reset state for new game
+    canRevive = true; 
+    pendingRewardAction = 'coins';
+    
     startScreen.classList.remove('active');
     gameOverScreen.classList.remove('active');
+    reviveScreen.classList.remove('active');
+    if (reviveTimerInterval) clearInterval(reviveTimerInterval);
     hud.classList.add('active');
 
     if (animationId) cancelAnimationFrame(animationId);
@@ -1133,10 +1218,81 @@ function startGame() {
 }
 
 function gameOver(reason) {
+    if (canRevive && score >= 0) { // Siempre ofrecer revivir si es posible
+        showReviveScreen(reason);
+        return;
+    }
+    showGameOverScreen(reason);
+}
+
+const reviveScreen = document.getElementById('revive-screen');
+const reviveTimerEl = document.getElementById('revive-timer');
+const reviveAdBtnInternal = document.getElementById('revive-ad-btn');
+const skipReviveBtn = document.getElementById('skip-revive-btn');
+
+function showReviveScreen(reason) {
+    gameState = 'REVIVE_PROMPT';
+    hud.classList.remove('active');
+    reviveScreen.classList.add('active');
+    
+    let seconds = 5;
+    reviveTimerEl.textContent = seconds;
+    
+    if (reviveTimerInterval) clearInterval(reviveTimerInterval);
+    reviveTimerInterval = setInterval(() => {
+        seconds--;
+        reviveTimerEl.textContent = seconds;
+        if (seconds <= 0) {
+            clearInterval(reviveTimerInterval);
+            showGameOverScreen(reason);
+        }
+    }, 1000);
+
+    reviveAdBtnInternal.onclick = () => {
+        clearInterval(reviveTimerInterval);
+        pendingRewardAction = 'revive';
+        showRewardedAd();
+    };
+
+    skipReviveBtn.onclick = () => {
+        clearInterval(reviveTimerInterval);
+        showGameOverScreen(reason);
+    };
+}
+
+function revivePlayer() {
+    canRevive = false; // Solo una vez por partida
+    gameState = 'PLAYING';
+    reviveScreen.classList.remove('active');
+    hud.classList.add('active');
+    
+    // Limpiar peligros inmediatos
+    blocks = [];
+    invincibleBlocks = [];
+    
+    // Reposicionar un poco
+    Hole.x = canvas.width / 2;
+    Hole.y = canvas.height - 150;
+    VIP.x = canvas.width / 2;
+    VIP.y = canvas.height / 2;
+    VIP.vx = 0;
+    VIP.vy = 0;
+    
+    // Escudo temporal de 3 segundos
+    VIP.hasShield = true;
+    setTimeout(() => {
+        VIP.hasShield = false;
+    }, 3000);
+
+    if (!animationId) loop();
+}
+
+function showGameOverScreen(reason) {
     showBannerAd();
-    triggerVibration('heavy'); // Patrón pesado de derrota
+    triggerVibration('heavy');
 
     gameState = 'GAMEOVER';
+    reviveScreen.classList.remove('active');
     hud.classList.remove('active');
     gameOverScreen.classList.add('active');
     deathReason.innerText = reason;
@@ -1146,19 +1302,17 @@ function gameOver(reason) {
     totalCoins += score;
     localStorage.setItem('devourer_total_coins', totalCoins);
     if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
+    if (storeTotalCoinsDisplay) storeTotalCoinsDisplay.innerText = totalCoins;
 
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('devourer_high_score', highScore);
-        startHighScoreDisplay.innerText = highScore;
+        if (startHighScoreDisplay) startHighScoreDisplay.innerText = highScore;
         
         // Guardar en la nube si está logueado y es un nuevo récord
         if (window.FirebaseAPI && currentUser) {
-            console.log(`[HIGHSCORE] Local check passed: ${score} > Old ${highScore - score}`); 
             window.FirebaseAPI.saveScore(score);
         }
-    } else {
-        console.log(`[HIGHSCORE] Local check skipped: ${score} is not higher than ${highScore}`);
     }
     gameOverHighScoreDisplay.innerText = `${t.bestScore}: ${highScore}`;
 
@@ -1171,23 +1325,46 @@ function gameOver(reason) {
     localStorage.setItem('devourer_deaths_count', deathsCount);
 }
 
+
 function updateStoreUI() {
     storeItemsContainer.innerHTML = '';
+    storeTabs.innerHTML = '';
     
-    SHOP_ITEMS.forEach(item => {
+    const categories = [
+        { id: 'skin', title: t.shopSkins },
+        { id: 'background', title: t.shopBackgrounds },
+        { id: 'upgrade', title: t.shopUpgrades }
+    ];
+
+    // Renderizar Tabs
+    categories.forEach(cat => {
+        const tabBtn = document.createElement('button');
+        tabBtn.className = `tab-btn ${activeShopCategory === cat.id ? 'active' : ''}`;
+        tabBtn.textContent = cat.title;
+        tabBtn.onclick = () => {
+            activeShopCategory = cat.id;
+            updateStoreUI();
+        };
+        storeTabs.appendChild(tabBtn);
+    });
+
+    // Filtrar Items por categoría activa
+    const filteredItems = SHOP_ITEMS.filter(i => i.type === activeShopCategory);
+
+    filteredItems.forEach(item => {
         const isOwned = ownedItems.includes(item.id);
-        const isEquipped = equippedSkin === item.id;
         const canAfford = totalCoins >= item.price;
         
         const itemEl = document.createElement('div');
         itemEl.className = 'store-item';
         
-        // Determinar texto y clase del botón
         let btnText = t.buy;
         let btnClass = 'buy-btn';
         
         if (isOwned) {
-            if (item.type === 'skin') {
+            if (item.type === 'skin' || item.type === 'background') {
+                const isEquipped = (item.type === 'skin' && equippedSkin === item.id) || 
+                                   (item.type === 'background' && equippedBackground === item.id);
                 if (isEquipped) {
                     btnText = t.equipped;
                     btnClass += ' equipped';
@@ -1203,7 +1380,7 @@ function updateStoreUI() {
             btnClass += ' insufficient';
         }
 
-        const nameKey = item.id.replace(/-([a-z])/, (m, c) => c.toUpperCase()); // e.g. skinNeon
+        const nameKey = item.id.replace(/-([a-z])/, (m, c) => c.toUpperCase());
         const descKey = nameKey + 'Desc';
 
         itemEl.innerHTML = `
@@ -1229,6 +1406,11 @@ function handleStoreAction(item) {
             equippedSkin = item.id;
             localStorage.setItem('devourer_equipped_skin', equippedSkin);
             updateStoreUI();
+        } else if (item.type === 'background' && equippedBackground !== item.id) {
+            equippedBackground = item.id;
+            localStorage.setItem('devourer_equipped_background', equippedBackground);
+            updateStoreUI();
+            drawBackground(); // Actualizar fondo inmediatamente si estamos en el menú
         }
         return;
     }

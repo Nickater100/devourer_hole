@@ -45,6 +45,7 @@
         <div id="store-screen" class="screen">
             <h1>LA TIENDA</h1>
             <div class="coins-display store-coins">🪙 <span id="store-total-coins">0</span></div>
+            <div id="store-tabs" class="store-tabs"></div>
             <div class="store-items" id="store-items-container">
                 <!-- Items will be injected here by game.js -->
             </div>
@@ -60,6 +61,17 @@
                 </ul>
             </div>
             <button id="close-leaderboard-btn" class="secondary-btn">VOLVER</button>
+        </div>
+
+        <!-- Revive Screen -->
+        <div id="revive-screen" class="screen">
+            <h2 id="lbl-revive-title">¿Segunda Oportunidad?</h2>
+            <p id="lbl-revive-desc">Mira un video para seguir jugando</p>
+            <div id="revive-timer" style="font-size: 3rem; color: var(--primary); margin-bottom: 2rem;">5</div>
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                <button id="revive-ad-btn" style="width: 100%; background: linear-gradient(45deg, #f39c12, #e67e22);">📹 REVIVIR</button>
+                <button id="skip-revive-btn" class="secondary-btn" style="width: 100%;">No, gracias</button>
+            </div>
         </div>
 
         <!-- HUD -->

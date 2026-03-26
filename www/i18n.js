@@ -41,6 +41,12 @@ const translations = {
         upgradeSizeDesc: 'Aumenta el radio del agujero un 15%.',
         upgradeMagnet: 'Súper Imán',
         upgradeMagnetDesc: 'Succión de bloques más potente.',
+        bgDefault: 'Fondo Clásico',
+        bgDefaultDesc: 'La cuadrícula original ciberespacial.',
+        bgFire: 'Campo de Fuego',
+        bgFireDesc: 'Infierno ardiente con brasas flotantes.',
+        bgSpace: 'Vacío Estelar',
+        bgSpaceDesc: 'El espacio profundo con estrellas distantes.',
         leaderboard: 'RANKING',
         leaderboardTitle: 'TOP 50 GLOBAL',
         loginGoogle: 'Iniciar sesión con Google',
@@ -48,7 +54,14 @@ const translations = {
         loading: 'Cargando...',
         guest: 'Invitado',
         menu: 'MENÚ PRINCIPAL',
-        rewardedBtn: '📹 +100 🪙'
+        rewardedBtn: '📹 +100 🪙',
+        reviveTitle: '¿Segunda Oportunidad?',
+        reviveDesc: 'Mira un video para seguir jugando',
+        reviveAdBtn: '📹 REVIVIR',
+        reviveSkip: 'No, gracias',
+        shopSkins: 'Skins de Esfera',
+        shopBackgrounds: 'Skins de Fondo',
+        shopUpgrades: 'Mejoras de Juego'
     },
     en: {
         title1: 'ANGRY',
@@ -91,6 +104,12 @@ const translations = {
         upgradeSizeDesc: 'Increases hole radius by 15%.',
         upgradeMagnet: 'Super Magnet',
         upgradeMagnetDesc: 'Stronger block suction power.',
+        bgDefault: 'Classic Grid',
+        bgDefaultDesc: 'The original cyberspace grid.',
+        bgFire: 'Field of Fire',
+        bgFireDesc: 'Burning hell with floating embers.',
+        bgSpace: 'Star Void',
+        bgSpaceDesc: 'Deep space with distant stars.',
         leaderboard: 'RANKING',
         leaderboardTitle: 'GLOBAL TOP 50',
         loginGoogle: 'Sign in with Google',
@@ -98,7 +117,14 @@ const translations = {
         loading: 'Loading...',
         guest: 'Guest',
         menu: 'MAIN MENU',
-        rewardedBtn: '📹 +100 🪙'
+        rewardedBtn: '📹 +100 🪙',
+        reviveTitle: 'Second Chance?',
+        reviveDesc: 'Watch a video to keep playing',
+        reviveAdBtn: '📹 REVIVE',
+        reviveSkip: 'No, thanks',
+        shopSkins: 'Sphere Skins',
+        shopBackgrounds: 'Background Skins',
+        shopUpgrades: 'Level Upgrades'
     }
 };
 
@@ -139,6 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('close-leaderboard-btn').textContent = t.back;
     document.getElementById('login-btn').textContent = t.loginGoogle;
     document.getElementById('rewarded-ad-btn').textContent = t.rewardedBtn;
+
+    // Revive Screen
+    document.getElementById('lbl-revive-title').textContent = t.reviveTitle;
+    document.getElementById('lbl-revive-desc').textContent = t.reviveDesc;
+    document.getElementById('revive-ad-btn').textContent = t.reviveAdBtn;
+    document.getElementById('skip-revive-btn').textContent = t.reviveSkip;
 
     // Actualizar lang en el html tag
     document.documentElement.lang = lang;

@@ -63,7 +63,8 @@ canvas {
 
 /* Glassmorphism Panel */
 #start-screen,
-#game-over-screen {
+#game-over-screen,
+#revive-screen {
     background: rgba(26, 26, 46, 0.85);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -315,6 +316,40 @@ button.secondary-btn:active {
     margin-bottom: 2rem;
 }
 
+.store-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+.tab-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #a0a0a0 !important;
+    padding: 10px 5px !important;
+    font-size: 0.75rem !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    transition: all 0.2s !important;
+}
+
+.tab-btn.active {
+    background: rgba(78, 204, 163, 0.15) !important;
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+    box-shadow: 0 0 10px rgba(78, 204, 163, 0.2) !important;
+}
+
+.store-category-title {
+    display: none; /* Hide since we use tabs now */
+}
+
+.store-category-title:first-child {
+    margin-top: 0;
+}
+
 /* Scrollbar para la tienda */
 #store-items-container::-webkit-scrollbar {
     width: 6px;
@@ -362,6 +397,11 @@ button.secondary-btn:active {
 .icon-shield { background: #fff; color: #333; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 .icon-size { background: #4ecca3; transform: scale(1.3); }
 .icon-magnet { background: #f39c12; position: relative; }
+
+/* Iconos para Fondos */
+.icon-bg-default { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); }
+.icon-bg-fire { background: radial-gradient(circle, #ff4b2b, #3d0c02); box-shadow: 0 0 15px #ff4b2b; }
+.icon-bg-space { background: radial-gradient(circle, #663399, #0b0d17); box-shadow: 0 0 15px #663399; }
 
 .item-name {
     color: var(--text);
