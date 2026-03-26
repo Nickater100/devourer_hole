@@ -47,7 +47,8 @@ const translations = {
         logout: 'Cerrar sesión',
         loading: 'Cargando...',
         guest: 'Invitado',
-        menu: 'MENÚ PRINCIPAL'
+        menu: 'MENÚ PRINCIPAL',
+        rewardedBtn: '📹 +100 🪙'
     },
     en: {
         title1: 'ANGRY',
@@ -96,7 +97,8 @@ const translations = {
         logout: 'Sign out',
         loading: 'Loading...',
         guest: 'Guest',
-        menu: 'MAIN MENU'
+        menu: 'MAIN MENU',
+        rewardedBtn: '📹 +100 🪙'
     }
 };
 
@@ -136,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lbl-leaderboard-title').textContent = t.leaderboardTitle;
     document.getElementById('close-leaderboard-btn').textContent = t.back;
     document.getElementById('login-btn').textContent = t.loginGoogle;
+    document.getElementById('rewarded-ad-btn').textContent = t.rewardedBtn;
 
     // Actualizar lang en el html tag
     document.documentElement.lang = lang;

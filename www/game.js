@@ -27,6 +27,7 @@ const leaderboardScreen = document.getElementById('leaderboard-screen');
 const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
 const leaderboardList = document.getElementById('leaderboard-list');
 const menuBtn = document.getElementById('menu-btn');
+const rewardedAdBtn = document.getElementById('rewarded-ad-btn');
 
 // Game State
 let gameState = 'START';
@@ -51,22 +52,88 @@ setTimeout(async () => {
             });
             isAdMobInitialized = true;
             console.log("AdMob initialized successfully");
+            
+            // Mostrar Banner al inicio
+            showBannerAd();
+            
+            // Función centralizada para otorgar la recompensa
+            const grantReward = (reward) => {
+                console.log("[ADMOB] Reward received event triggered!", reward);
+                totalCoins += 100;
+                localStorage.setItem('devourer_total_coins', totalCoins);
+                if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
+                if (storeTotalCoinsDisplay) storeTotalCoinsDisplay.innerText = totalCoins;
+                
+                // Feedback visual sin bloquear el hilo principal (evita cuelgues con el Ad)
+                const originalText = rewardedAdBtn.textContent;
+                rewardedAdBtn.textContent = "✅ +100 🪙";
+                rewardedAdBtn.style.backgroundColor = "rgba(46, 204, 113, 0.4)";
+                setTimeout(() => {
+                    rewardedAdBtn.textContent = originalText;
+                    rewardedAdBtn.style.backgroundColor = "";
+                }, 3000);
+            };
+
+            // Intentar con ambos nombres de eventos por compatibilidad entre versiones del plugin
+            window.AdMobPlugin.addListener('rewardVideoAdRewardReceived', grantReward);
+            window.AdMobPlugin.addListener('onRewardedVideoAdReward', grantReward);
+            
+            console.log("[ADMOB] Listeners for rewarded ads added.");
+
         } catch (e) {
             console.error("AdMob initialization error", e);
         }
     }
 }, 500);
 
+async function showBannerAd() {
+    if (!isAdMobInitialized) return;
+    try {
+        await window.AdMobPlugin.showBanner({
+            adId: 'ca-app-pub-1547228404922892/8486628826', 
+            adSize: 'BANNER',
+            position: 'BOTTOM_CENTER',
+            margin: 0,
+            isTesting: false
+        });
+    } catch (e) {
+        console.error("Error showing AdMob Banner", e);
+    }
+}
+
+async function hideBannerAd() {
+    if (!isAdMobInitialized) return;
+    try {
+        await window.AdMobPlugin.hideBanner();
+    } catch (e) {
+        console.error("Error hiding AdMob Banner", e);
+    }
+}
+
 async function showInterstitialAd() {
     if (!isAdMobInitialized) return;
     try {
         await window.AdMobPlugin.prepareInterstitial({
-            adId: 'ca-app-pub-1547228404922892/8976645036', // Su ID real de AdMob
+            adId: 'ca-app-pub-1547228404922892/8976645036',
             isTesting: false
         });
         await window.AdMobPlugin.showInterstitial();
     } catch (e) {
         console.error("Error showing AdMob Interstitial", e);
+    }
+}
+
+async function showRewardedAd() {
+    if (!isAdMobInitialized) return;
+    try {
+        await window.AdMobPlugin.prepareRewardVideoAd({
+            adId: 'ca-app-pub-1547228404922892/4547383818', 
+            isTesting: false
+        });
+        await window.AdMobPlugin.showRewardVideoAd();
+    } catch (e) {
+        console.error("Error showing AdMob Rewarded Video", e);
+        alert("El video no está disponible en este momento.");
     }
 }
 
@@ -1058,10 +1125,15 @@ function startGame() {
     gameOverScreen.classList.remove('active');
     hud.classList.add('active');
 
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = null;
+
+    hideBannerAd();
     if (!animationId) loop();
 }
 
 function gameOver(reason) {
+    showBannerAd();
     triggerVibration('heavy'); // Patrón pesado de derrota
 
     gameState = 'GAMEOVER';
@@ -1303,9 +1375,14 @@ startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
 
 menuBtn.addEventListener('click', () => {
+    showBannerAd();
     gameOverScreen.classList.remove('active');
     startScreen.classList.add('active');
     drawGrid(); // Redibujar la cuadrícula de fondo
+});
+
+rewardedAdBtn.addEventListener('click', () => {
+    showRewardedAd();
 });
 
 drawGrid();
