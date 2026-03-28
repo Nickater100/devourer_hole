@@ -61,7 +61,18 @@ const translations = {
         reviveSkip: 'No, gracias',
         shopSkins: 'Skins de Esfera',
         shopBackgrounds: 'Skins de Fondo',
-        shopUpgrades: 'Mejoras de Juego'
+        shopUpgrades: 'Mejoras de Juego',
+        versusBtn: 'MODO VERSUS',
+        searchingOpponent: 'Buscando oponente...',
+        versusJoinFee: 'Costo de entrada: 100 🪙',
+        versusWin: '¡GANASTE LA APUESTA! +200 🪙',
+        versusLoss: 'PERDISTE LA APUESTA -100 🪙',
+        opponentDead: 'Oponente: ELIMINADO',
+        opponentAlive: 'Oponente: VIVO',
+        cancel: 'CANCELAR',
+        settingsTitle: 'AJUSTES',
+        close: 'CERRAR',
+        deleteAccount: 'Borrar Cuenta'
     },
     en: {
         title1: 'ANGRY',
@@ -124,7 +135,18 @@ const translations = {
         reviveSkip: 'No, thanks',
         shopSkins: 'Sphere Skins',
         shopBackgrounds: 'Background Skins',
-        shopUpgrades: 'Level Upgrades'
+        shopUpgrades: 'Level Upgrades',
+        versusBtn: 'VERSUS MODE',
+        searchingOpponent: 'Searching for opponent...',
+        versusJoinFee: 'Entry fee: 100 🪙',
+        versusWin: 'YOU WON THE BET! +200 🪙',
+        versusLoss: 'YOU LOST THE BET -100 🪙',
+        opponentDead: 'Opponent: ELIMINATED',
+        opponentAlive: 'Opponent: ALIVE',
+        cancel: 'CANCEL',
+        settingsTitle: 'SETTINGS',
+        close: 'CLOSE',
+        deleteAccount: 'Delete Account'
     }
 };
 
@@ -146,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Labels con ID propio → nunca tocamos los <span> de datos que usa game.js
     document.getElementById('lbl-high-score').textContent = t.highScore;
     document.getElementById('start-btn').textContent = t.play;
+    document.getElementById('versus-btn').textContent = t.versusBtn;
     document.getElementById('store-btn').textContent = t.store;
 
     // Tienda
@@ -160,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('menu-btn').textContent = t.menu;
 
     // Leaderboard
-    document.getElementById('ranking-btn').textContent = t.leaderboard;
+    document.getElementById('leaderboard-btn').textContent = t.leaderboard;
     document.getElementById('lbl-leaderboard-title').textContent = t.leaderboardTitle;
     document.getElementById('close-leaderboard-btn').textContent = t.back;
     document.getElementById('login-btn').textContent = t.loginGoogle;
@@ -171,6 +194,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('lbl-revive-desc').textContent = t.reviveDesc;
     document.getElementById('revive-ad-btn').textContent = t.reviveAdBtn;
     document.getElementById('skip-revive-btn').textContent = t.reviveSkip;
+
+    // Versus Matchmaking
+    document.getElementById('lbl-searching').textContent = t.searchingOpponent;
+    document.getElementById('versus-cancel-btn').textContent = t.cancel;
+    document.getElementById('lbl-versus-fee').textContent = t.versusJoinFee;
+
+    // Configuración Modal
+    document.getElementById('lbl-settings-title').textContent = t.settingsTitle;
+    document.getElementById('close-settings-btn').textContent = t.close;
+    document.getElementById('delete-account-btn').textContent = t.deleteAccount;
 
     // Actualizar lang en el html tag
     document.documentElement.lang = lang;

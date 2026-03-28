@@ -20,7 +20,7 @@ const storeBtn = document.getElementById('store-btn');
 const closeStoreBtn = document.getElementById('close-store-btn');
 const storeItemsContainer = document.getElementById('store-items-container');
 
-const rankingBtn = document.getElementById('ranking-btn');
+const leaderboardBtn = document.getElementById('leaderboard-btn');
 const loginBtn = document.getElementById('login-btn');
 const deleteAccountBtn = document.getElementById('delete-account-btn');
 const leaderboardScreen = document.getElementById('leaderboard-screen');
@@ -35,9 +35,18 @@ let gameState = 'START';
 let score = 0;
 let currentUser = null;
 let activeShopCategory = 'skin';
-let canRevive = true; // Se resetea al empezar partida
-let pendingRewardAction = 'coins'; // 'coins' o 'revive'
+let canRevive = true;
+let pendingRewardAction = 'coins';
 let reviveTimerInterval = null;
+
+// Versus Mode State
+let isVersus = false;
+let currentMatchId = null;
+let isPlayer1 = false;
+let matchUnsubscribe = null;
+let opponentData = null;
+let versusResultProcessed = false;
+
 
 let highScore = parseInt(localStorage.getItem('devourer_high_score')) || 0;
 
@@ -59,14 +68,14 @@ setTimeout(async () => {
             });
             isAdMobInitialized = true;
             console.log("AdMob initialized successfully");
-            
+
             // Mostrar Banner al inicio
             showBannerAd();
-            
+
             // Función centralizada para otorgar la recompensa
             const grantReward = (reward) => {
                 console.log("[ADMOB] Reward received event triggered!", reward);
-                
+
                 if (pendingRewardAction === 'revive') {
                     revivePlayer();
                     return;
@@ -76,7 +85,7 @@ setTimeout(async () => {
                 localStorage.setItem('devourer_total_coins', totalCoins);
                 if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
                 if (storeTotalCoinsDisplay) storeTotalCoinsDisplay.innerText = totalCoins;
-                
+
                 // Feedback visual sin bloquear el hilo principal (evita cuelgues con el Ad)
                 const originalText = rewardedAdBtn.textContent;
                 rewardedAdBtn.textContent = "✅ +100 🪙";
@@ -90,7 +99,7 @@ setTimeout(async () => {
             // Intentar con ambos nombres de eventos por compatibilidad entre versiones del plugin
             window.AdMobPlugin.addListener('rewardVideoAdRewardReceived', grantReward);
             window.AdMobPlugin.addListener('onRewardedVideoAdReward', grantReward);
-            
+
             console.log("[ADMOB] Listeners for rewarded ads added.");
 
         } catch (e) {
@@ -103,7 +112,7 @@ async function showBannerAd() {
     if (!isAdMobInitialized) return;
     try {
         await window.AdMobPlugin.showBanner({
-            adId: 'ca-app-pub-1547228404922892/8486628826', 
+            adId: 'ca-app-pub-1547228404922892/8486628826',
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
             margin: 0,
@@ -140,7 +149,7 @@ async function showRewardedAd() {
     if (!isAdMobInitialized) return;
     try {
         await window.AdMobPlugin.prepareRewardVideoAd({
-            adId: 'ca-app-pub-1547228404922892/4547383818', 
+            adId: 'ca-app-pub-1547228404922892/4547383818',
             isTesting: false
         });
         await window.AdMobPlugin.showRewardVideoAd();
@@ -253,7 +262,7 @@ async function triggerVibration(pattern) {
         try {
             if (pattern === 'heavy') navigator.vibrate([200, 100, 200, 100, 400]);
             else navigator.vibrate([100, 50, 100]);
-        } catch (e) {}
+        } catch (e) { }
     }
 }
 
@@ -378,7 +387,7 @@ const Hole = {
 
     draw() {
         ctx.save();
-        
+
         // Estilos de Skins
         let holeColor = this.color;
         let borderColor = this.border;
@@ -398,10 +407,10 @@ const Hole = {
             borderColor = '#ff4b2b';
             shadowColor = '#ff4b2b';
             shadowBlur = 15;
-            
+
             // Partículas de "fuego/humo" ocasionales
             if (Math.random() > 0.8 && gameState === 'PLAYING') {
-                spawnParticles(this.x + (Math.random()-0.5)*20, this.y + (Math.random()-0.5)*20, '#ff4b2b', 1);
+                spawnParticles(this.x + (Math.random() - 0.5) * 20, this.y + (Math.random() - 0.5) * 20, '#ff4b2b', 1);
             }
         } else if (equippedSkin === 'skin-rainbow') {
             const hue = (Date.now() / 20) % 360;
@@ -423,7 +432,7 @@ const Hole = {
         ctx.fillStyle = holeColor;
         ctx.fill();
         ctx.shadowBlur = 0;
-        
+
         ctx.lineWidth = 5;
         ctx.strokeStyle = borderColor;
         ctx.stroke();
@@ -450,7 +459,7 @@ const VIP = {
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
             const distToCenter = Math.sqrt((cx - this.x) ** 2 + (cy - this.y) ** 2);
-            
+
             let angle;
             if (distToCenter > canvas.width * 0.3) {
                 // Si está muy lejos del centro (cerca de bordes), forzar dirección general hacia adentro
@@ -542,7 +551,7 @@ class Block {
         this.height = blocksConfig.height;
         this.isGhost = isGhost;
         this.isRocket = isRocket;
-        
+
         if (this.isGhost) {
             this.color = '#bdc3c7'; // Ghostly gray/white
             this.phaseTimer = Math.random() * Math.PI * 2;
@@ -552,21 +561,21 @@ class Block {
             this.color = '#ff4757'; // Rojo/Naranja misil
             this.isSolid = true;
             // Cohete SUPER RÁPIDO
-            this.baseSpeed = 1.8 + Math.random() * 0.4; 
+            this.baseSpeed = 1.8 + Math.random() * 0.4;
             // Forma alargada y aerodinámica
             this.width = 16;
             this.height = 36;
             // Modo Orbita Inicial
             this.rocketState = 'orbiting';
             this.rocketOrbitTime = 250; // 4 segundos aprox
-            this.orbitAngle = Math.atan2(this.y - canvas.height/2, this.x - canvas.width/2);
-            this.orbitRadius = Math.sqrt((this.x - canvas.width/2)**2 + (this.y - canvas.height/2)**2);
+            this.orbitAngle = Math.atan2(this.y - canvas.height / 2, this.x - canvas.width / 2);
+            this.orbitRadius = Math.sqrt((this.x - canvas.width / 2) ** 2 + (this.y - canvas.height / 2) ** 2);
         } else {
             this.color = enemyColors[Math.floor(Math.random() * enemyColors.length)];
             this.isSolid = true;
             this.baseSpeed = 0.5 + Math.random() * 0.5;
         }
-        
+
         this.active = true;
         this.scale = 1;
         this.falling = false;
@@ -592,7 +601,7 @@ class Block {
                 // Aplicar sistema de cadena y puntuación
                 applyCombo();
                 score += currentMultiplier;
-                
+
                 // Puntos extra
                 if (this.isGhost) score += 2;
                 if (this.isRocket) score += 3; // Eliminar el misil da más puntos
@@ -625,9 +634,9 @@ class Block {
                 if (this.orbitRadius > canvas.width * 0.35) {
                     this.orbitRadius -= 2 * timeScale;
                 }
-                this.x = canvas.width/2 + Math.cos(this.orbitAngle) * this.orbitRadius;
-                this.y = canvas.height/2 + Math.sin(this.orbitAngle) * this.orbitRadius;
-                
+                this.x = canvas.width / 2 + Math.cos(this.orbitAngle) * this.orbitRadius;
+                this.y = canvas.height / 2 + Math.sin(this.orbitAngle) * this.orbitRadius;
+
                 // Rotación apuntando en dirección de la órbita (tangente +/- ajuste)
                 this.rotation = this.orbitAngle + Math.PI;
 
@@ -851,7 +860,7 @@ function drawBackground() {
         ctx.beginPath();
         ctx.arc(canvas.width / 2, canvas.height, canvas.width, 0, Math.PI * 2);
         ctx.fill();
-        
+
         // El grid se dibuja muy tenue en rojo
         ctx.strokeStyle = 'rgba(231, 76, 60, 0.1)';
     } else if (equippedBackground === 'bg-space') {
@@ -869,14 +878,14 @@ function drawBackground() {
             ctx.fill();
         });
         ctx.globalAlpha = 1.0;
-        
+
         // Nebulosa tenue
         const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width);
         grad.addColorStop(0, 'rgba(102, 51, 153, 0.1)');
         grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+
         // El grid se dibuja muy tenue en azul
         ctx.strokeStyle = 'rgba(52, 152, 219, 0.1)';
     } else {
@@ -915,7 +924,7 @@ function spawnInvincible() {
             spawnX = Math.random() * canvas.width;
             spawnY = Math.random() > 0.5 ? -30 : canvas.height + 30;
         }
-        
+
         // Evitar que aparezca encima del VIP
         const dx = spawnX - VIP.x;
         const dy = spawnY - VIP.y;
@@ -983,13 +992,13 @@ function spawnBlock() {
             }
             attempts++;
         }
-        
+
         let isGhost = false;
         // Empiezan a aparecer fantasmas después de los 25 puntos
         if (score > 25 && Math.random() < 0.20) {
             isGhost = true;
         }
-        
+
         blocks.push(new Block(spawnX, spawnY, isGhost));
     }
 }
@@ -1148,6 +1157,7 @@ function draw() {
 function loop(timestamp) {
     update();
     draw();
+    updateVersusStatus();
     animationId = requestAnimationFrame(loop);
 }
 
@@ -1177,7 +1187,7 @@ function startGame() {
     // Aplicar Upgrades Permanentes
     Hole.radius = Math.min(canvas.width, canvas.height) * 0.1;
     if (upgrades.biggerHole) Hole.radius *= 1.15;
-    
+
     VIP.hasShield = upgrades.shield;
 
     // Reset Game Feel variables
@@ -1200,10 +1210,20 @@ function startGame() {
     VIP.vy = 0;
     VIP.timer = 60;
 
+    // Reset Versus state
+    isVersus = false;
+    versusResultProcessed = false;
+    opponentInfo.style.display = 'none';
+    if (matchUnsubscribe && gameState !== 'PLAYING') {
+        matchUnsubscribe();
+        matchUnsubscribe = null;
+    }
+
     // Reset state for new game
-    canRevive = true; 
+
+    canRevive = true;
     pendingRewardAction = 'coins';
-    
+
     startScreen.classList.remove('active');
     gameOverScreen.classList.remove('active');
     reviveScreen.classList.remove('active');
@@ -1234,10 +1254,10 @@ function showReviveScreen(reason) {
     gameState = 'REVIVE_PROMPT';
     hud.classList.remove('active');
     reviveScreen.classList.add('active');
-    
+
     let seconds = 5;
     reviveTimerEl.textContent = seconds;
-    
+
     if (reviveTimerInterval) clearInterval(reviveTimerInterval);
     reviveTimerInterval = setInterval(() => {
         seconds--;
@@ -1265,11 +1285,11 @@ function revivePlayer() {
     gameState = 'PLAYING';
     reviveScreen.classList.remove('active');
     hud.classList.add('active');
-    
+
     // Limpiar peligros inmediatos
     blocks = [];
     invincibleBlocks = [];
-    
+
     // Reposicionar un poco
     Hole.x = canvas.width / 2;
     Hole.y = canvas.height - 150;
@@ -1277,7 +1297,7 @@ function revivePlayer() {
     VIP.y = canvas.height / 2;
     VIP.vx = 0;
     VIP.vy = 0;
-    
+
     // Escudo temporal de 3 segundos
     VIP.hasShield = true;
     setTimeout(() => {
@@ -1297,9 +1317,14 @@ function showGameOverScreen(reason) {
     gameOverScreen.classList.add('active');
     deathReason.innerText = reason;
     finalScoreDisplay.innerText = `${t.finalScore}: ${score}`;
-    
-    // Convert score to coins
-    totalCoins += score;
+
+    if (isVersus) {
+        processVersusResult();
+    } else {
+        // Normal game cleanup
+        totalCoins += score;
+    }
+
     localStorage.setItem('devourer_total_coins', totalCoins);
     if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
     if (storeTotalCoinsDisplay) storeTotalCoinsDisplay.innerText = totalCoins;
@@ -1308,7 +1333,7 @@ function showGameOverScreen(reason) {
         highScore = score;
         localStorage.setItem('devourer_high_score', highScore);
         if (startHighScoreDisplay) startHighScoreDisplay.innerText = highScore;
-        
+
         // Guardar en la nube si está logueado y es un nuevo récord
         if (window.FirebaseAPI && currentUser) {
             window.FirebaseAPI.saveScore(score);
@@ -1326,10 +1351,67 @@ function showGameOverScreen(reason) {
 }
 
 
+async function processVersusResult() {
+    if (versusResultProcessed) return;
+    versusResultProcessed = true;
+
+    // Si llego aquí es porque YO morí (llamado desde showGameOverScreen)
+    await window.FirebaseAPI.updateMatchStatus(currentMatchId, isPlayer1, false, score);
+
+    const won = opponentData && !opponentData.isAlive;
+    if (won) {
+        totalCoins += 200;
+        alert(t.versusWin);
+    } else {
+        alert(t.versusLoss);
+    }
+
+    endVersusMatch();
+}
+
+function winVersusMatch() {
+    if (versusResultProcessed) return;
+    versusResultProcessed = true;
+
+    gameState = 'GAMEOVER';
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = null;
+
+    // Resetear HUD versus
+    opponentInfo.style.display = 'none';
+
+    totalCoins += 200;
+    localStorage.setItem('devourer_total_coins', totalCoins);
+    if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
+
+    alert(t.versusWin);
+    showGameOverScreen(t.versusWin);
+
+    endVersusMatch();
+}
+
+function endVersusMatch() {
+    isVersus = false;
+    if (matchUnsubscribe) {
+        matchUnsubscribe();
+        matchUnsubscribe = null;
+    }
+    opponentInfo.style.display = 'none';
+}
+
+let lastVersusScoreSent = -1;
+function updateVersusStatus() {
+    const s = Math.floor(score);
+    if (isVersus && currentMatchId && s % 5 === 0 && s !== lastVersusScoreSent) {
+        lastVersusScoreSent = s;
+        window.FirebaseAPI.updateMatchStatus(currentMatchId, isPlayer1, true, score);
+    }
+}
+
 function updateStoreUI() {
     storeItemsContainer.innerHTML = '';
     storeTabs.innerHTML = '';
-    
+
     const categories = [
         { id: 'skin', title: t.shopSkins },
         { id: 'background', title: t.shopBackgrounds },
@@ -1354,17 +1436,17 @@ function updateStoreUI() {
     filteredItems.forEach(item => {
         const isOwned = ownedItems.includes(item.id);
         const canAfford = totalCoins >= item.price;
-        
+
         const itemEl = document.createElement('div');
         itemEl.className = 'store-item';
-        
+
         let btnText = t.buy;
         let btnClass = 'buy-btn';
-        
+
         if (isOwned) {
             if (item.type === 'skin' || item.type === 'background') {
-                const isEquipped = (item.type === 'skin' && equippedSkin === item.id) || 
-                                   (item.type === 'background' && equippedBackground === item.id);
+                const isEquipped = (item.type === 'skin' && equippedSkin === item.id) ||
+                    (item.type === 'background' && equippedBackground === item.id);
                 if (isEquipped) {
                     btnText = t.equipped;
                     btnClass += ' equipped';
@@ -1390,17 +1472,17 @@ function updateStoreUI() {
             ${!isOwned ? `<div class="item-price">🪙 ${item.price}</div>` : ''}
             <button class="${btnClass}" data-id="${item.id}">${btnText}</button>
         `;
-        
+
         const btn = itemEl.querySelector('button');
         btn.addEventListener('click', () => handleStoreAction(item));
-        
+
         storeItemsContainer.appendChild(itemEl);
     });
 }
 
 function handleStoreAction(item) {
     const isOwned = ownedItems.includes(item.id);
-    
+
     if (isOwned) {
         if (item.type === 'skin' && equippedSkin !== item.id) {
             equippedSkin = item.id;
@@ -1414,24 +1496,24 @@ function handleStoreAction(item) {
         }
         return;
     }
-    
+
     if (totalCoins >= item.price) {
         // Comprar
         totalCoins -= item.price;
         ownedItems.push(item.id);
-        
+
         // Aplicar efectos permanentes de upgrades
         if (item.id === 'upgrade-shield') upgrades.shield = true;
         if (item.id === 'upgrade-size') upgrades.biggerHole = true;
         if (item.id === 'upgrade-magnet') upgrades.magnet = true;
-        
+
         localStorage.setItem('devourer_total_coins', totalCoins);
         localStorage.setItem('devourer_owned_items', JSON.stringify(ownedItems));
         localStorage.setItem('devourer_upgrades', JSON.stringify(upgrades));
-        
+
         startCoinsDisplay.innerText = totalCoins;
         storeTotalCoinsDisplay.innerText = totalCoins;
-        
+
         updateStoreUI();
     }
 }
@@ -1448,24 +1530,24 @@ closeStoreBtn.addEventListener('click', () => {
     startScreen.classList.add('active');
 });
 
-rankingBtn.addEventListener('click', async () => {
+leaderboardBtn.addEventListener('click', async () => {
     startScreen.classList.remove('active');
     leaderboardScreen.classList.add('active');
-    
+
     leaderboardList.innerHTML = `<li style="text-align: center; color: #a0a0a0;">${t.loading}</li>`;
-    
+
     if (window.FirebaseAPI) {
         const scores = await window.FirebaseAPI.getLeaderboard();
         leaderboardList.innerHTML = '';
-        
+
         if (scores.length === 0) {
             leaderboardList.innerHTML = `<li style="text-align: center; color: #a0a0a0;">No data yet.</li>`;
         } else {
             scores.forEach((s, index) => {
                 const li = document.createElement('li');
                 li.className = 'leaderboard-item';
-                
-                const avatarStr = s.photoURL 
+
+                const avatarStr = s.photoURL
                     ? `<img src="${s.photoURL}" class="lb-avatar" referrerpolicy="no-referrer" onerror="this.style.display='none'" />`
                     : `<div class="lb-avatar"></div>`;
 
@@ -1490,7 +1572,7 @@ closeLeaderboardBtn.addEventListener('click', () => {
 const fbInitInterval = setInterval(() => {
     if (window.FirebaseAPI) {
         clearInterval(fbInitInterval);
-        
+
         window.FirebaseAPI.onAuthChange(async (user) => {
             currentUser = user;
             if (user) {
@@ -1540,7 +1622,7 @@ const fbInitInterval = setInterval(() => {
                             highScore = 0;
                             localStorage.removeItem('devourer_high_score');
                             if (startHighScoreDisplay) startHighScoreDisplay.innerText = 0;
-                            
+
                             await window.FirebaseAPI.deleteAccount(currentUser.uid);
                             alert(t.accountDeleted);
                         } catch (e) {
@@ -1552,6 +1634,116 @@ const fbInitInterval = setInterval(() => {
         }
     }
 }, 100);
+
+const versusBtn = document.getElementById('versus-btn');
+const versusMatchmakingScreen = document.getElementById('versus-matchmaking-screen');
+const versusCancelBtn = document.getElementById('versus-cancel-btn');
+const opponentInfo = document.getElementById('opponent-info');
+const opponentNameEl = document.getElementById('opponent-name');
+const opponentStatusEl = document.getElementById('opponent-status');
+const opponentScoreEl = document.getElementById('opponent-score');
+
+// Configuración Modal
+const settingsBtn = document.getElementById('settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const closeSettingsBtn = document.getElementById('close-settings-btn');
+
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+        settingsModal.classList.add('active');
+    });
+}
+
+if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener('click', () => {
+        settingsModal.classList.remove('active');
+    });
+}
+
+versusBtn.addEventListener('click', () => {
+    if (totalCoins < 100) {
+        alert(t.insufficient);
+        return;
+    }
+    startVersusMatchmaking();
+});
+
+versusCancelBtn.addEventListener('click', () => {
+    cancelMatchmaking();
+});
+
+async function startVersusMatchmaking() {
+    if (!currentUser) {
+        alert("Debes iniciar sesión para jugar Versus");
+        return;
+    }
+
+    gameState = 'MATCHMAKING';
+    startScreen.classList.remove('active');
+    versusMatchmakingScreen.classList.add('active');
+
+    // Consultar el o los matches disponibles
+    const match = await window.FirebaseAPI.findMatch();
+    if (match) {
+        currentMatchId = match.id;
+        isPlayer1 = match.isPlayer1;
+
+        matchUnsubscribe = window.FirebaseAPI.listenToMatch(currentMatchId, (matchData) => {
+            handleMatchUpdate(matchData);
+        });
+    }
+}
+
+function handleMatchUpdate(matchData) {
+    if (matchData.status === 'playing' && gameState === 'MATCHMAKING') {
+        startVersusGame(matchData);
+    }
+
+    if (isVersus && (gameState === 'PLAYING' || gameState === 'GAMEOVER')) {
+        const opp = isPlayer1 ? matchData.player2 : matchData.player1;
+
+        if (opp) {
+            opponentData = opp;
+            opponentNameEl.textContent = opp.displayName;
+            opponentScoreEl.textContent = Math.floor(opp.score);
+
+            const isDead = opp.isAlive === false;
+            opponentStatusEl.textContent = isDead ? t.opponentDead : t.opponentAlive;
+            opponentStatusEl.style.color = isDead ? '#ff4c4c' : '#4ecca3';
+
+            // Si el oponente murió y yo sigo jugando, ganar de inmediato
+            if (isDead && gameState === 'PLAYING') {
+                console.log("Opponent is dead! Triggering Victory.");
+                winVersusMatch();
+            }
+        }
+    }
+}
+
+function startVersusGame(matchData) {
+    isVersus = true;
+    versusResultProcessed = false;
+    totalCoins -= 100; // Cobrar entrada
+    localStorage.setItem('devourer_total_coins', totalCoins);
+    if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
+
+    versusMatchmakingScreen.classList.remove('active');
+    opponentInfo.style.display = 'block';
+
+    startGame();
+}
+
+async function cancelMatchmaking() {
+    if (currentMatchId && isPlayer1) {
+        await window.FirebaseAPI.cancelMatch(currentMatchId);
+    }
+    if (matchUnsubscribe) matchUnsubscribe();
+
+    gameState = 'START';
+    versusMatchmakingScreen.classList.remove('active');
+    startScreen.classList.add('active');
+    currentMatchId = null;
+}
 
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);

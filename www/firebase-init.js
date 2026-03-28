@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, getDocs, query, orderBy, limit, serverTimestamp, setDoc, doc, getDoc, initializeFirestore, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, orderBy, limit, serverTimestamp, setDoc, doc, getDoc, initializeFirestore, deleteDoc, onSnapshot, where, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCUqx74Lgt2VZR30NBLERaoapsu7MFLf2g",
@@ -157,5 +157,76 @@ window.FirebaseAPI = {
     },
     onAuthChange: (callback) => {
         onAuthStateChanged(auth, callback);
+    },
+    // --- Versus Mode Methods ---
+    findMatch: async () => {
+        if (!auth.currentUser) return null;
+        try {
+            const matchesRef = collection(db, "matches");
+            const q = query(matchesRef, where("status", "==", "waiting"), limit(1));
+            const querySnapshot = await getDocs(q);
+            
+            const playerInfo = {
+                uid: auth.currentUser.uid,
+                displayName: auth.currentUser.displayName || "Anonymous",
+                photoURL: auth.currentUser.photoURL || "",
+                isAlive: true,
+                score: 0
+            };
+
+            if (!querySnapshot.empty) {
+                // Join existing match
+                const matchDoc = querySnapshot.docs[0];
+                if (matchDoc.data().player1.uid === auth.currentUser.uid) {
+                    // It's the same player (re-joining/same session)
+                    return { id: matchDoc.id, isPlayer1: true };
+                }
+                
+                await updateDoc(doc(db, "matches", matchDoc.id), {
+                    player2: playerInfo,
+                    status: "playing",
+                    startTime: serverTimestamp()
+                });
+                return { id: matchDoc.id, isPlayer1: false };
+            } else {
+                // Create new match
+                const newMatch = await addDoc(matchesRef, {
+                    player1: playerInfo,
+                    player2: null,
+                    status: "waiting",
+                    createdAt: serverTimestamp()
+                });
+                return { id: newMatch.id, isPlayer1: true };
+            }
+        } catch (error) {
+            console.error("Error finding match", error);
+            return null;
+        }
+    },
+    updateMatchStatus: async (matchId, isPlayer1, isAlive, score) => {
+        try {
+            const updateData = {};
+            const playerField = isPlayer1 ? "player1" : "player2";
+            updateData[`${playerField}.isAlive`] = isAlive;
+            updateData[`${playerField}.score`] = score;
+            
+            await updateDoc(doc(db, "matches", matchId), updateData);
+        } catch (error) {
+            console.error("Error updating match status", error);
+        }
+    },
+    listenToMatch: (matchId, callback) => {
+        return onSnapshot(doc(db, "matches", matchId), (doc) => {
+            if (doc.exists()) {
+                callback(doc.data());
+            }
+        });
+    },
+    cancelMatch: async (matchId) => {
+        try {
+            await deleteDoc(doc(db, "matches", matchId));
+        } catch (error) {
+            console.error("Error cancelling match", error);
+        }
     }
 };

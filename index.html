@@ -14,30 +14,50 @@
     <div id="ui-container">
         <!-- Start Screen -->
         <div id="start-screen" class="screen active">
-            <h1>ANGRY<br><span>BALL</span></h1>
-            <p>Trágate los bloques enemigos.<br>Protege la esfera interactiva.<br><span class="danger">Persiguen al
-                    objetivo. ¡Defiéndelo!</span></p>
-            <div class="stats-container">
-                <div class="high-score-display"><span id="lbl-high-score">Mejor Puntaje</span>: <span id="start-high-score">0</span></div>
-                <div class="coins-display">🪙 <span id="start-coins">0</span></div>
+            <!-- Header: Monedas y Ajustes -->
+            <div class="top-header">
+                <div class="header-left">
+                    <div class="header-coins">🪙 <span id="start-coins">0</span></div>
+                    <button id="rewarded-ad-btn" class="icon-btn-text">📹 +100 🪙</button>
+                </div>
+                <button id="settings-btn" class="icon-btn">⚙️</button>
             </div>
-            <div class="menu-buttons">
-                <button id="start-btn">JUGAR</button>
-                <div style="display: flex; gap: 10px; width: 100%;">
-                    <button id="store-btn" class="secondary-btn" style="flex: 1;">TIENDA</button>
-                    <button id="ranking-btn" class="secondary-btn" style="flex: 1;">RANKING</button>
+
+            <!-- Main Menu Panel -->
+            <div class="main-menu-panel glass">
+                <h1>ANGRY<br><span>BALL</span></h1>
+                
+                <div class="high-score-display">
+                    <span id="lbl-high-score">Mejor</span>: <span id="start-high-score">0</span>
                 </div>
-                <div id="user-profile" style="margin-top: 5px; width: 100%;">
-                    <button id="login-btn" class="secondary-btn" style="width: 100%; font-size: 0.9rem; padding: 10px; border-color: rgba(255, 255, 255, 0.3); color: #fff;">
-                       Iniciar sesión con Google
-                    </button>
-                    <button id="delete-account-btn" class="secondary-btn" style="width: 100%; font-size: 0.9rem; padding: 10px; border-color: rgba(255, 0, 0, 0.3); color: #ff4c4c; display: none; margin-top: 5px;">
-                       Borrar Cuenta
-                    </button>
+
+                <div class="menu-actions">
+                    <button id="start-btn" class="primary-btn">JUGAR</button>
+                    
+                    <button id="versus-btn" class="versus-btn-alt">⚔️ MODO VERSUS</button>
+                    
+                    <div class="secondary-actions">
+                        <button id="store-btn" class="secondary-btn">🛒 TIENDA</button>
+                        <button id="leaderboard-btn" class="secondary-btn">🏆 TOP</button>
+                    </div>
                 </div>
-                <button id="rewarded-ad-btn" class="secondary-btn" style="width: 100%; margin-top: 5px; background: rgba(52, 152, 219, 0.2); border-color: rgba(52, 152, 219, 0.5);">
-                    📹 +100 🪙
-                </button>
+
+                <p class="start-hint">Trágate los bloques. Protege la esfera.</p>
+            </div>
+            
+            <!-- Safe space for Ad Banner at the bottom -->
+            <div class="ad-safe-zone"></div>
+        </div>
+
+        <!-- Settings Modal (Hidden by default) -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-content glass">
+                <h2 id="lbl-settings-title">AJUSTES</h2>
+                <div id="user-profile">
+                    <button id="login-btn" class="secondary-btn">Iniciar sesión con Google</button>
+                    <button id="delete-account-btn" class="secondary-btn danger-text" style="display: none;">Borrar Cuenta</button>
+                </div>
+                <button id="close-settings-btn" class="secondary-btn">CERRAR</button>
             </div>
         </div>
 
@@ -74,9 +94,25 @@
             </div>
         </div>
 
+        <!-- Versus Matchmaking Screen -->
+        <div id="versus-matchmaking-screen" class="screen">
+            <h2 id="lbl-searching">Buscando oponente...</h2>
+            <p id="lbl-versus-fee" style="color: #f1c40f;">Costo de entrada: 100 🪙</p>
+            <div class="loader-container" style="margin: 2rem 0;">
+                <div class="loader"></div>
+            </div>
+            <button id="versus-cancel-btn" class="secondary-btn">CANCELAR</button>
+        </div>
+
         <!-- HUD -->
         <div id="hud" class="screen">
             <div id="score-display"></div>
+            <div id="opponent-info" style="display: none; position: absolute; top: 10px; right: 20px; text-align: right; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; border: 1px solid #4ecca3; z-index: 100;">
+                <div id="opponent-name" style="font-weight: bold; font-size: 0.8rem; color: #fff;">---</div>
+                <div id="opponent-status" style="font-size: 0.7rem; color: #4ecca3;">Oponente: VIVO</div>
+                <div id="opponent-score" style="font-size: 1.2rem; font-weight: 900; color: #fff;">0</div>
+            </div>
+
         </div>
 
         <!-- Game Over Screen -->

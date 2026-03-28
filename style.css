@@ -61,10 +61,10 @@ canvas {
     /* Enable clicks on active screens */
 }
 
-/* Glassmorphism Panel */
-#start-screen,
+/* Glassmorphism Panel (Común para pantallas centradas) */
 #game-over-screen,
-#revive-screen {
+#revive-screen,
+#versus-matchmaking-screen {
     background: rgba(26, 26, 46, 0.85);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -74,6 +74,19 @@ canvas {
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     text-align: center;
     max-width: 90%;
+}
+
+#start-screen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    box-shadow: none;
 }
 
 h1 {
@@ -158,13 +171,158 @@ p .danger {
     box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
 }
 
-.menu-buttons {
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.header-left {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem; /* Más espacio entre Jugar y Tienda */
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.icon-btn-text {
+    background: rgba(52, 152, 219, 0.2);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(52, 152, 219, 0.4);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    box-shadow: none;
+    text-transform: none;
+    letter-spacing: 0;
+    width: auto;
+}
+
+.header-coins {
+    background: rgba(255, 215, 0, 0.1);
+    backdrop-filter: blur(5px);
+    padding: 8px 15px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    justify-content: center;
     align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+    font-size: 1.2rem;
+}
+
+.main-menu-panel {
+    background: rgba(26, 26, 46, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 2rem;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    width: 90%;
+    max-width: 400px;
+    flex: none;
+    margin: auto 0;
+}
+
+.menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.primary-btn {
+    width: 100%;
+    padding: 18px;
+    font-size: 1.5rem;
+    border-radius: 40px;
+}
+
+.versus-btn-alt {
+    width: 100%;
+    background: linear-gradient(45deg, #8121d0, #33105d);
+    border: 1px solid #8c2ee0;
+    color: #fff;
+    padding: 12px;
+    border-radius: 15px;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 15px rgba(129, 33, 208, 0.3);
+}
+
+.secondary-actions {
+    display: flex;
+    gap: 10px;
     width: 100%;
 }
+
+.secondary-actions .secondary-btn {
+    flex: 1;
+}
+
+.ad-safe-zone {
+    height: 100px; /* Espacio reservado para el banner */
+    width: 100%;
+    flex: none;
+}
+
+.start-hint {
+    margin-top: 20px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal.active { 
+    display: flex; 
+    pointer-events: auto; 
+}
+
+.modal-content {
+    background: rgba(26, 26, 46, 0.9);
+    padding: 2rem;
+    border-radius: 20px;
+    width: 85%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.glass {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.danger-text { color: var(--danger) !important; border-color: var(--danger) !important; }
 
 .high-score-text {
     font-size: 1.1rem !important;
@@ -471,3 +629,30 @@ button.secondary-btn:active {
 #score-display span {
     color: var(--primary);
 }
+
+/* Versus Mode Styles */
+#versus-btn {
+    margin-top: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(129, 33, 208, 0.3);
+}
+
+.loader {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top: 5px solid var(--primary);
+    animation: spin 1s linear infinite;
+    margin: 2rem auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.screen {
+    z-index: 1000;
+}
