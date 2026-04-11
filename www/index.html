@@ -14,6 +14,19 @@
     <div id="ui-container">
         <!-- Start Screen -->
         <div id="start-screen" class="screen active">
+            <!-- Settings Dropdown (top-right) -->
+            <div id="settings-dropdown" class="settings-dropdown">
+                <button id="settings-toggle-btn" class="settings-toggle-btn" aria-label="Settings">⚙️</button>
+                <div id="settings-menu" class="settings-menu">
+                    <button id="login-btn" class="settings-menu-item">
+                        Iniciar sesión con Google
+                    </button>
+                    <button id="delete-account-btn" class="settings-menu-item danger-item" style="display: none;">
+                        Borrar Cuenta
+                    </button>
+                </div>
+            </div>
+
             <h1>ANGRY<br><span>BALL</span></h1>
             <p>Trágate los bloques enemigos.<br>Protege la esfera interactiva.<br><span class="danger">Persiguen al
                     objetivo. ¡Defiéndelo!</span></p>
@@ -26,14 +39,6 @@
                 <div style="display: flex; gap: 10px; width: 100%;">
                     <button id="store-btn" class="secondary-btn" style="flex: 1;">TIENDA</button>
                     <button id="ranking-btn" class="secondary-btn" style="flex: 1;">RANKING</button>
-                </div>
-                <div id="user-profile" style="margin-top: 5px; width: 100%;">
-                    <button id="login-btn" class="secondary-btn" style="width: 100%; font-size: 0.9rem; padding: 10px; border-color: rgba(255, 255, 255, 0.3); color: #fff;">
-                       Iniciar sesión con Google
-                    </button>
-                    <button id="delete-account-btn" class="secondary-btn" style="width: 100%; font-size: 0.9rem; padding: 10px; border-color: rgba(255, 0, 0, 0.3); color: #ff4c4c; display: none; margin-top: 5px;">
-                       Borrar Cuenta
-                    </button>
                 </div>
                 <button id="rewarded-ad-btn" class="secondary-btn" style="width: 100%; margin-top: 5px; background: rgba(52, 152, 219, 0.2); border-color: rgba(52, 152, 219, 0.5);">
                     📹 +100 🪙

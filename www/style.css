@@ -76,6 +76,100 @@ canvas {
     max-width: 90%;
 }
 
+/* Settings Dropdown */
+.settings-dropdown {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 20;
+}
+
+.settings-toggle-btn {
+    width: 42px;
+    height: 42px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s !important;
+    color: #fff !important;
+}
+
+.settings-toggle-btn:hover,
+.settings-toggle-btn.active {
+    background: rgba(255, 255, 255, 0.15) !important;
+    transform: rotate(45deg) !important;
+}
+
+.settings-menu {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    min-width: 220px;
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    padding: 6px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.95);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    pointer-events: none;
+}
+
+.settings-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.settings-menu-item {
+    width: 100%;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #ddd !important;
+    font-size: 0.85rem !important;
+    padding: 12px 14px !important;
+    border-radius: 8px !important;
+    text-align: left !important;
+    cursor: pointer;
+    transition: background 0.15s !important;
+    display: block;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+
+.settings-menu-item:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.settings-menu-item:active {
+    transform: none !important;
+}
+
+.settings-menu-item.danger-item {
+    color: #ff4c4c !important;
+}
+
+.settings-menu-item.danger-item:hover {
+    background: rgba(255, 76, 76, 0.12) !important;
+}
+
+.settings-menu-item.logged-in {
+    color: var(--danger) !important;
+}
+
 h1 {
     font-size: 2.5rem;
     line-height: 1.1;

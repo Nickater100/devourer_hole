@@ -30,6 +30,24 @@ const menuBtn = document.getElementById('menu-btn');
 const rewardedAdBtn = document.getElementById('rewarded-ad-btn');
 const storeTabs = document.getElementById('store-tabs');
 
+// Settings Dropdown
+const settingsToggleBtn = document.getElementById('settings-toggle-btn');
+const settingsMenu = document.getElementById('settings-menu');
+
+settingsToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = settingsMenu.classList.toggle('open');
+    settingsToggleBtn.classList.toggle('active', isOpen);
+});
+
+// Cerrar dropdown al clickear fuera
+document.addEventListener('click', (e) => {
+    if (!settingsMenu.contains(e.target) && e.target !== settingsToggleBtn) {
+        settingsMenu.classList.remove('open');
+        settingsToggleBtn.classList.remove('active');
+    }
+});
+
 // Game State
 let gameState = 'START';
 let score = 0;
@@ -1495,8 +1513,7 @@ const fbInitInterval = setInterval(() => {
             currentUser = user;
             if (user) {
                 loginBtn.innerHTML = `${t.logout} (${user.displayName || t.guest})`;
-                loginBtn.style.color = 'var(--danger)';
-                loginBtn.style.borderColor = 'rgba(233, 69, 96, 0.4)';
+                loginBtn.classList.add('logged-in');
                 if (deleteAccountBtn) deleteAccountBtn.style.display = 'block';
 
                 // Sincronizar HighScore local con la nube al loguearse
@@ -1517,13 +1534,14 @@ const fbInitInterval = setInterval(() => {
                 }
             } else {
                 loginBtn.innerHTML = t.loginGoogle;
-                loginBtn.style.color = '#fff';
-                loginBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                loginBtn.classList.remove('logged-in');
                 if (deleteAccountBtn) deleteAccountBtn.style.display = 'none';
             }
         });
 
         loginBtn.addEventListener('click', () => {
+            settingsMenu.classList.remove('open');
+            settingsToggleBtn.classList.remove('active');
             if (currentUser) {
                 window.FirebaseAPI.logout();
             } else {
