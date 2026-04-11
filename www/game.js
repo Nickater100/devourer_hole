@@ -193,6 +193,7 @@ function saveCampaignProgress() {
 // --- AdMob Initialization ---
 let isAdMobInitialized = false;
 let deathsCount = parseInt(localStorage.getItem('devourer_deaths_count')) || 0;
+let campaignPlaysCount = parseInt(localStorage.getItem('devourer_campaign_plays')) || 0;
 
 setTimeout(async () => {
     if (window.AdMobPlugin) {
@@ -1406,7 +1407,7 @@ function startSurvivalGame() {
 function startCampaignLevel(levelIndex) {
     gameMode = 'campaign';
     currentLevelIndex = levelIndex;
-    canRevive = false; // No revive in campaign
+    canRevive = true;
     resetGameCore();
 
     const lvl = LEVELS[levelIndex];
@@ -1438,12 +1439,12 @@ function startCampaignLevel(levelIndex) {
 }
 
 function gameOver(reason) {
-    if (gameMode === 'campaign') {
-        failCampaignLevel();
-        return;
-    }
     if (canRevive && score >= 0) {
         showReviveScreen(reason);
+        return;
+    }
+    if (gameMode === 'campaign') {
+        failCampaignLevel();
         return;
     }
     showGameOverScreen(reason);
@@ -1468,7 +1469,11 @@ function showReviveScreen(reason) {
         reviveTimerEl.textContent = seconds;
         if (seconds <= 0) {
             clearInterval(reviveTimerInterval);
-            showGameOverScreen(reason);
+            if (gameMode === 'campaign') {
+                failCampaignLevel();
+            } else {
+                showGameOverScreen(reason);
+            }
         }
     }, 1000);
 
@@ -1480,7 +1485,11 @@ function showReviveScreen(reason) {
 
     skipReviveBtn.onclick = () => {
         clearInterval(reviveTimerInterval);
-        showGameOverScreen(reason);
+        if (gameMode === 'campaign') {
+            failCampaignLevel();
+        } else {
+            showGameOverScreen(reason);
+        }
     };
 }
 
@@ -2033,6 +2042,13 @@ function completeCampaignLevel() {
         equippedBackground = savedBgForCampaign;
         savedBgForCampaign = null;
     }
+
+    campaignPlaysCount++;
+    if (campaignPlaysCount >= 5) {
+        campaignPlaysCount = 0;
+        showInterstitialAd();
+    }
+    localStorage.setItem('devourer_campaign_plays', campaignPlaysCount);
 }
 
 function failCampaignLevel() {
@@ -2058,6 +2074,13 @@ function failCampaignLevel() {
         equippedBackground = savedBgForCampaign;
         savedBgForCampaign = null;
     }
+
+    campaignPlaysCount++;
+    if (campaignPlaysCount >= 5) {
+        campaignPlaysCount = 0;
+        showInterstitialAd();
+    }
+    localStorage.setItem('devourer_campaign_plays', campaignPlaysCount);
 }
 
 // Track shield loss for star calculation
