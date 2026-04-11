@@ -565,3 +565,247 @@ button.secondary-btn:active {
 #score-display span {
     color: var(--primary);
 }
+
+/* ======================== */
+/* === CAMPAIGN MODE CSS === */
+/* ======================== */
+
+/* Campaign Button */
+.campaign-btn {
+    background: linear-gradient(45deg, #f39c12, #e67e22) !important;
+    color: #1a1a2e !important;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4) !important;
+}
+
+#survival-btn, #campaign-btn {
+    font-size: 1rem;
+    padding: 14px 20px;
+    letter-spacing: 1px;
+}
+
+/* Level Select Screen */
+#level-select-screen {
+    width: 90%;
+    max-width: 500px;
+}
+
+.world-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.2rem;
+    width: 100%;
+}
+
+.world-tab {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #a0a0a0 !important;
+    padding: 10px 5px !important;
+    font-size: 0.7rem !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    transition: all 0.2s !important;
+}
+
+.world-tab.active {
+    background: rgba(78, 204, 163, 0.15) !important;
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+    box-shadow: 0 0 10px rgba(78, 204, 163, 0.2) !important;
+}
+
+.world-tab.locked-tab {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.level-grid-container {
+    width: 100%;
+    margin-bottom: 1.5rem;
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
+.level-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    gap: 2px;
+}
+
+.level-cell:hover:not(.level-locked) {
+    background: rgba(78, 204, 163, 0.1);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.level-cell:active:not(.level-locked) {
+    transform: scale(0.95);
+}
+
+.level-cell .level-number {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--text);
+}
+
+.level-cell .level-stars {
+    font-size: 0.55rem;
+    letter-spacing: 1px;
+}
+
+.level-cell .level-stars .star-on {
+    color: #ffd700;
+}
+
+.level-cell .level-stars .star-off {
+    color: rgba(255, 255, 255, 0.15);
+}
+
+.level-cell.level-locked {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.level-cell.level-locked .level-number {
+    color: #555;
+}
+
+.level-cell.level-locked::after {
+    content: '🔒';
+    position: absolute;
+    font-size: 0.8rem;
+    top: 3px;
+    right: 5px;
+}
+
+.level-cell.level-current {
+    border-color: var(--primary);
+    box-shadow: 0 0 12px rgba(78, 204, 163, 0.3);
+    animation: level-pulse 2s ease-in-out infinite;
+}
+
+@keyframes level-pulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(78, 204, 163, 0.3); }
+    50% { box-shadow: 0 0 20px rgba(78, 204, 163, 0.6); }
+}
+
+/* Level Complete Screen */
+#level-complete-screen {
+    background: rgba(26, 26, 46, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 2rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    text-align: center;
+    max-width: 90%;
+}
+
+#level-complete-screen h2 {
+    color: var(--primary);
+    margin-bottom: 0.3rem;
+}
+
+#level-complete-screen h2.failed {
+    color: var(--danger);
+}
+
+.level-name-display {
+    color: #a0a0a0;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stars-display {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 1.5rem;
+}
+
+.stars-display .star {
+    font-size: 3rem;
+    color: rgba(255, 255, 255, 0.1);
+    transition: color 0.4s ease, transform 0.4s ease, text-shadow 0.4s ease;
+}
+
+.stars-display .star.earned {
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    animation: star-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes star-pop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+.level-reward-display {
+    color: #ffd700;
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    background: rgba(255, 215, 0, 0.1);
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+/* Objective HUD */
+.objective-hud {
+    margin-top: 8px;
+    background: rgba(26, 26, 46, 0.7);
+    backdrop-filter: blur(5px);
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 200px;
+}
+
+.objective-text {
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.objective-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.objective-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #00f2fe);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.level-timer {
+    color: var(--primary);
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-top: 4px;
+    text-align: right;
+}

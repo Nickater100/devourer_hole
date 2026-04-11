@@ -5,7 +5,8 @@ const translations = {
         title2: 'BALL',
         subtitle: 'Trágate los bloques enemigos.<br>Protege la esfera interactiva.<br><span class="danger">Persiguen al objetivo. ¡Defiéndelo!</span>',
         highScore: 'Mejor Puntaje',
-        play: 'JUGAR',
+        survival: 'SUPERVIVENCIA',
+        campaign: 'CAMPAÑA',
         store: 'TIENDA',
         storeTitle: 'LA TIENDA',
         storeSoon: '¡Próximamente podrás comprar mejoras y poderes aquí!',
@@ -61,14 +62,45 @@ const translations = {
         reviveSkip: 'No, gracias',
         shopSkins: 'Skins de Esfera',
         shopBackgrounds: 'Skins de Fondo',
-        shopUpgrades: 'Mejoras de Juego'
+        shopUpgrades: 'Mejoras de Juego',
+        // Campaign Mode
+        campaignTitle: 'CAMPAÑA',
+        world1: 'Zona Cibernética',
+        world2: 'Infierno Ardiente',
+        world3: 'Vacío Estelar',
+        level: 'Nivel',
+        locked: 'Bloqueado',
+        levelComplete: '¡NIVEL COMPLETADO!',
+        levelFailed: '¡NIVEL FALLIDO!',
+        nextLevel: 'SIGUIENTE',
+        replayLevel: 'REPETIR',
+        starsEarned: 'Estrellas',
+        coinsEarned: 'Monedas Ganadas',
+        objectiveSurvive: 'Sobrevive {0}s',
+        objectiveKill: 'Destruye {0} bloques',
+        objectiveCombo: 'Logra un combo x{0}',
+        objectiveBoss: 'Elimina {0} Anomalía(s)',
+        objectiveGhost: 'Elimina {0} fantasma(s)',
+        levelNames: [
+            'Primer Contacto',
+            'Hambre Insaciable',
+            'Resistencia',
+            'Cacería',
+            'Cadena Letal',
+            'Apariciones',
+            'Campos de Batalla',
+            'Cazafantasmas',
+            'Asedio Total',
+            'La Anomalía'
+        ]
     },
     en: {
         title1: 'ANGRY',
         title2: 'BALL',
         subtitle: 'Swallow enemy blocks.<br>Protect the interactive sphere.<br><span class="danger">They chase the target. Defend it!</span>',
         highScore: 'Best Score',
-        play: 'PLAY',
+        survival: 'SURVIVAL',
+        campaign: 'CAMPAIGN',
         store: 'SHOP',
         storeTitle: 'THE SHOP',
         storeSoon: 'Upgrades and powers available below:',
@@ -124,7 +156,37 @@ const translations = {
         reviveSkip: 'No, thanks',
         shopSkins: 'Sphere Skins',
         shopBackgrounds: 'Background Skins',
-        shopUpgrades: 'Level Upgrades'
+        shopUpgrades: 'Level Upgrades',
+        // Campaign Mode
+        campaignTitle: 'CAMPAIGN',
+        world1: 'Cyber Zone',
+        world2: 'Burning Hell',
+        world3: 'Star Void',
+        level: 'Level',
+        locked: 'Locked',
+        levelComplete: 'LEVEL COMPLETE!',
+        levelFailed: 'LEVEL FAILED!',
+        nextLevel: 'NEXT',
+        replayLevel: 'REPLAY',
+        starsEarned: 'Stars',
+        coinsEarned: 'Coins Earned',
+        objectiveSurvive: 'Survive {0}s',
+        objectiveKill: 'Destroy {0} blocks',
+        objectiveCombo: 'Reach a x{0} combo',
+        objectiveBoss: 'Defeat {0} Anomaly(ies)',
+        objectiveGhost: 'Destroy {0} ghost(s)',
+        levelNames: [
+            'First Contact',
+            'Insatiable Hunger',
+            'Endurance',
+            'The Hunt',
+            'Lethal Chain',
+            'Apparitions',
+            'Battlefields',
+            'Ghostbusters',
+            'Total Siege',
+            'The Anomaly'
+        ]
     }
 };
 
@@ -145,7 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('#start-screen p').innerHTML = t.subtitle;
     // Labels con ID propio → nunca tocamos los <span> de datos que usa game.js
     document.getElementById('lbl-high-score').textContent = t.highScore;
-    document.getElementById('start-btn').textContent = t.play;
+    document.getElementById('survival-btn').textContent = t.survival;
+    document.getElementById('campaign-btn').textContent = t.campaign;
     document.getElementById('store-btn').textContent = t.store;
 
     // Tienda

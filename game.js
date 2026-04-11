@@ -9,9 +9,27 @@ const scoreDisplay = document.getElementById('score-display');
 const finalScoreDisplay = document.getElementById('final-score-container');
 const startHighScoreDisplay = document.getElementById('start-high-score');
 const gameOverHighScoreDisplay = document.getElementById('high-score-container');
-const startBtn = document.getElementById('start-btn');
+const survivalBtn = document.getElementById('survival-btn');
+const campaignBtn = document.getElementById('campaign-btn');
 const restartBtn = document.getElementById('restart-btn');
 const deathReason = document.getElementById('death-reason');
+
+// Campaign UI Elements
+const levelSelectScreen = document.getElementById('level-select-screen');
+const levelGrid = document.getElementById('level-grid');
+const worldTabs = document.getElementById('world-tabs');
+const closeLevelsBtn = document.getElementById('close-levels-btn');
+const levelCompleteScreen = document.getElementById('level-complete-screen');
+const levelResultTitle = document.getElementById('level-result-title');
+const levelNameDisplay = document.getElementById('level-name-display');
+const nextLevelBtn = document.getElementById('next-level-btn');
+const replayLevelBtn = document.getElementById('replay-level-btn');
+const levelsMenuBtn = document.getElementById('levels-menu-btn');
+const objectiveHud = document.getElementById('objective-hud');
+const objectiveText = document.getElementById('objective-text');
+const objectiveBar = document.getElementById('objective-bar');
+const levelTimerDisplay = document.getElementById('level-timer');
+const levelRewardDisplay = document.getElementById('level-reward-display');
 
 const storeScreen = document.getElementById('store-screen');
 const startCoinsDisplay = document.getElementById('start-coins');
@@ -63,6 +81,114 @@ if (startHighScoreDisplay) startHighScoreDisplay.innerText = highScore;
 
 let totalCoins = parseInt(localStorage.getItem('devourer_total_coins')) || 0;
 if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
+
+// ========================
+// === CAMPAIGN SYSTEM ===
+// ========================
+
+let gameMode = 'survival'; // 'survival' o 'campaign'
+let currentLevelIndex = 0;
+let currentWorldIndex = 0;
+let levelTimer = 0; // frames restantes
+let levelObjectiveProgress = 0;
+let levelKillsTotal = 0; // Total bloques destruidos en el nivel
+let levelGhostKills = 0;
+let levelBossKills = 0;
+let levelMaxCombo = 0;
+let levelShieldLost = false;
+let savedBgForCampaign = null; // Para restaurar el fondo del usuario al terminar
+
+// Progreso guardado: { levelStars: [0,0,0,...], unlockedLevel: 0 }
+let campaignProgress = JSON.parse(localStorage.getItem('devourer_campaign')) || {
+    levelStars: [0,0,0,0,0,0,0,0,0,0],
+    unlockedLevel: 0,
+    coinsCollected: [false,false,false,false,false,false,false,false,false,false] // track per-star-tier
+};
+
+// Cada entrada: { coins1, coins2, coins3 } ya cobradas — simplificamos con un array de max estrellas que ya pagaron
+// campaignProgress.coinsCollected[i] stores the max stars already paid for level i
+// Reworked: coinsCollected[i] = max stars already rewarded (0, 1, 2, or 3)
+if (!Array.isArray(campaignProgress.coinsCollected) || campaignProgress.coinsCollected.some(v => typeof v === 'boolean')) {
+    campaignProgress.coinsCollected = [0,0,0,0,0,0,0,0,0,0];
+    localStorage.setItem('devourer_campaign', JSON.stringify(campaignProgress));
+}
+
+const COIN_REWARDS = [0, 25, 50, 100]; // coins for 0, 1, 2, 3 stars
+
+const WORLDS = [
+    { id: 0, nameKey: 'world1', bg: 'bg-default', levels: 10 },
+    { id: 1, nameKey: 'world2', bg: 'bg-fire',    levels: 10 },
+    { id: 2, nameKey: 'world3', bg: 'bg-space',   levels: 10 }
+];
+
+// Mundo 1 — Zona Cibernética (10 niveles)
+// objective types: 'survive', 'kill', 'combo', 'boss', 'ghost'
+const LEVELS = [
+    { // Nivel 1 — Primer Contacto
+        objective: 'survive', target: 20,
+        duration: 25, // seconds
+        speedMult: 0.7, spawnRate: 140,
+        ghostChance: 0, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 2 — Hambre Insaciable
+        objective: 'kill', target: 10,
+        duration: 40,
+        speedMult: 0.8, spawnRate: 120,
+        ghostChance: 0, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 3 — Resistencia
+        objective: 'survive', target: 30,
+        duration: 35,
+        speedMult: 0.9, spawnRate: 100,
+        ghostChance: 0, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 4 — Cacería
+        objective: 'kill', target: 20,
+        duration: 50,
+        speedMult: 1.0, spawnRate: 90,
+        ghostChance: 0, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 5 — Cadena Letal
+        objective: 'combo', target: 2,
+        duration: 45,
+        speedMult: 1.0, spawnRate: 70,
+        ghostChance: 0, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 6 — Apariciones
+        objective: 'survive', target: 25,
+        duration: 30,
+        speedMult: 1.0, spawnRate: 90,
+        ghostChance: 0.15, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 7 — Campos de Batalla
+        objective: 'kill', target: 25,
+        duration: 50,
+        speedMult: 1.1, spawnRate: 80,
+        ghostChance: 0.18, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 8 — Cazafantasmas
+        objective: 'ghost', target: 5,
+        duration: 50,
+        speedMult: 1.0, spawnRate: 85,
+        ghostChance: 0.35, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 9 — Asedio Total
+        objective: 'survive', target: 40,
+        duration: 45,
+        speedMult: 1.2, spawnRate: 60,
+        ghostChance: 0.20, enableBoss: false, enableRocket: false,
+    },
+    { // Nivel 10 — La Anomalía (BOSS)
+        objective: 'boss', target: 1,
+        duration: 60,
+        speedMult: 1.0, spawnRate: 110,
+        ghostChance: 0.10, enableBoss: true, bossCount: 1, enableRocket: false,
+    },
+];
+
+function saveCampaignProgress() {
+    localStorage.setItem('devourer_campaign', JSON.stringify(campaignProgress));
+}
 
 // --- AdMob Initialization ---
 let isAdMobInitialized = false;
@@ -550,6 +676,11 @@ function applyCombo() {
     } else {
         currentMultiplier = 1;
     }
+
+    // Campaign combo tracking
+    if (gameMode === 'campaign' && currentMultiplier > levelMaxCombo) {
+        levelMaxCombo = currentMultiplier;
+    }
 }
 
 class Block {
@@ -615,7 +746,13 @@ class Block {
                 if (this.isGhost) score += 2;
                 if (this.isRocket) score += 3; // Eliminar el misil da más puntos
 
-                if (score % 10 === 0) speedMultiplier += 0.08;
+                // Campaign tracking
+                if (gameMode === 'campaign') {
+                    levelKillsTotal++;
+                    if (this.isGhost) levelGhostKills++;
+                }
+
+                if (gameMode === 'survival' && score % 10 === 0) speedMultiplier += 0.08;
             }
             return;
         }
@@ -760,6 +897,7 @@ class InvincibleBlock {
                 score += 10;
                 applyCombo();
                 screenShakeTime = 15;
+                if (gameMode === 'campaign') levelBossKills++;
             }
             return;
         }
@@ -967,7 +1105,14 @@ function spawnRocket() {
 
 function spawnBlock() {
     blocksConfig.frameCount += timeScale;
-    let currentSpawnRate = Math.max(25, blocksConfig.spawnRate - (score * 0.6));
+
+    let currentSpawnRate;
+    if (gameMode === 'campaign') {
+        const lvl = LEVELS[currentLevelIndex];
+        currentSpawnRate = lvl.spawnRate;
+    } else {
+        currentSpawnRate = Math.max(25, blocksConfig.spawnRate - (score * 0.6));
+    }
 
     if (blocksConfig.frameCount >= currentSpawnRate) {
         blocksConfig.frameCount = 0;
@@ -993,7 +1138,6 @@ function spawnBlock() {
                 spawnY = Math.random() * canvas.height;
             }
 
-            // Distancia de seguridad para evitar Instakill
             const dx = spawnX - VIP.x;
             const dy = spawnY - VIP.y;
             if (Math.sqrt(dx * dx + dy * dy) > 250) {
@@ -1003,9 +1147,15 @@ function spawnBlock() {
         }
         
         let isGhost = false;
-        // Empiezan a aparecer fantasmas después de los 25 puntos
-        if (score > 25 && Math.random() < 0.20) {
-            isGhost = true;
+        if (gameMode === 'campaign') {
+            const lvl = LEVELS[currentLevelIndex];
+            if (lvl.ghostChance > 0 && Math.random() < lvl.ghostChance) {
+                isGhost = true;
+            }
+        } else {
+            if (score > 25 && Math.random() < 0.20) {
+                isGhost = true;
+            }
         }
         
         blocks.push(new Block(spawnX, spawnY, isGhost));
@@ -1042,7 +1192,7 @@ function update() {
     Hole.update();
     VIP.update();
 
-    // Colisión Agujero → VIP: el jugador puede empujar la esfera
+    // Colisión Agujero → VIP
     const hvdx = VIP.x - Hole.x;
     const hvdy = VIP.y - Hole.y;
     const hvDist = Math.sqrt(hvdx * hvdx + hvdy * hvdy);
@@ -1050,35 +1200,52 @@ function update() {
     if (hvDist < minDist && hvDist > 0) {
         const nx = hvdx / hvDist;
         const ny = hvdy / hvDist;
-
-        // Impulso: cuanto más rápido se mueve el Hole hacia el VIP, más fuerte lo empuja
         const holeSpeedToward = (Hole.x - mouse.x) * -nx + (Hole.y - mouse.y) * -ny;
         const pushStrength = Math.max(3, Math.min(8, Math.abs(holeSpeedToward) * 0.5 + 4));
-
         VIP.vx = nx * pushStrength;
         VIP.vy = ny * pushStrength;
-
-        // Separar para que no se superpongan
         VIP.x = Hole.x + nx * (minDist + 1);
         VIP.y = Hole.y + ny * (minDist + 1);
     }
 
     spawnBlock();
 
-    // Logica del Cohete (Rocket) cada 100 puntos a partir de 150
-    const currentRocketMilestone = Math.floor((score - 50) / 100);
-    if (score >= 150 && currentRocketMilestone > lastRocketMilestone) {
-        lastRocketMilestone = currentRocketMilestone;
-        spawnRocket();
+    // Campaign timer & objective checking
+    if (gameMode === 'campaign') {
+        levelTimer--;
+        updateCampaignHUD();
+        if (checkLevelObjective()) {
+            completeCampaignLevel();
+            return;
+        }
+        // Time ran out
+        if (levelTimer <= 0) {
+            const lvl = LEVELS[currentLevelIndex];
+            if (lvl.objective === 'survive') {
+                // Survived the full duration = win!
+                completeCampaignLevel();
+            } else {
+                failCampaignLevel();
+            }
+            return;
+        }
     }
 
-    const currentMilestone = Math.floor(score / 50);
-    if (currentMilestone > lastInvincibleMilestone) {
-        lastInvincibleMilestone = currentMilestone;
-        const targetCount = currentMilestone;
-        const toSpawn = Math.max(0, targetCount - invincibleBlocks.length);
-        for (let i = 0; i < toSpawn; i++) {
-            spawnInvincible();
+    // Survival mode spawning logic
+    if (gameMode === 'survival') {
+        const currentRocketMilestone = Math.floor((score - 50) / 100);
+        if (score >= 150 && currentRocketMilestone > lastRocketMilestone) {
+            lastRocketMilestone = currentRocketMilestone;
+            spawnRocket();
+        }
+        const currentMilestone = Math.floor(score / 50);
+        if (currentMilestone > lastInvincibleMilestone) {
+            lastInvincibleMilestone = currentMilestone;
+            const targetCount = currentMilestone;
+            const toSpawn = Math.max(0, targetCount - invincibleBlocks.length);
+            for (let i = 0; i < toSpawn; i++) {
+                spawnInvincible();
+            }
         }
     }
 
@@ -1180,11 +1347,10 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-function startGame() {
+function resetGameCore() {
     gameState = 'PLAYING';
-
     score = 0;
-    lastRocketMilestone = 0; // Reinicia el hito del cohete al empezar
+    lastRocketMilestone = 0;
     speedMultiplier = 1;
     blocks = [];
     invincibleBlocks = [];
@@ -1192,13 +1358,10 @@ function startGame() {
     lastInvincibleMilestone = 0;
     blocksConfig.frameCount = 0;
 
-    // Aplicar Upgrades Permanentes
     Hole.radius = Math.min(canvas.width, canvas.height) * 0.1;
     if (upgrades.biggerHole) Hole.radius *= 1.15;
-    
     VIP.hasShield = upgrades.shield;
 
-    // Reset Game Feel variables
     screenShakeTime = 0;
     comboCount = 0;
     comboTimer = 0;
@@ -1218,25 +1381,68 @@ function startGame() {
     VIP.vy = 0;
     VIP.timer = 60;
 
-    // Reset state for new game
-    canRevive = true; 
-    pendingRewardAction = 'coins';
-    
     startScreen.classList.remove('active');
     gameOverScreen.classList.remove('active');
+    levelCompleteScreen.classList.remove('active');
+    levelSelectScreen.classList.remove('active');
     reviveScreen.classList.remove('active');
     if (reviveTimerInterval) clearInterval(reviveTimerInterval);
     hud.classList.add('active');
+    objectiveHud.style.display = 'none';
 
     if (animationId) cancelAnimationFrame(animationId);
     animationId = null;
-
     hideBannerAd();
+}
+
+function startSurvivalGame() {
+    gameMode = 'survival';
+    canRevive = true;
+    pendingRewardAction = 'coins';
+    resetGameCore();
+    if (!animationId) loop();
+}
+
+function startCampaignLevel(levelIndex) {
+    gameMode = 'campaign';
+    currentLevelIndex = levelIndex;
+    canRevive = false; // No revive in campaign
+    resetGameCore();
+
+    const lvl = LEVELS[levelIndex];
+    speedMultiplier = lvl.speedMult;
+    levelTimer = lvl.duration * 60; // Convert seconds to frames
+    levelObjectiveProgress = 0;
+    levelKillsTotal = 0;
+    levelGhostKills = 0;
+    levelBossKills = 0;
+    levelMaxCombo = 0;
+    levelShieldLost = false;
+
+    // Force world background
+    savedBgForCampaign = equippedBackground;
+    const world = WORLDS[currentWorldIndex];
+    equippedBackground = world.bg;
+
+    // Spawn bosses if level has them
+    if (lvl.enableBoss) {
+        const count = lvl.bossCount || 1;
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => spawnInvincible(), i * 1000);
+        }
+    }
+
+    objectiveHud.style.display = 'block';
+    updateCampaignHUD();
     if (!animationId) loop();
 }
 
 function gameOver(reason) {
-    if (canRevive && score >= 0) { // Siempre ofrecer revivir si es posible
+    if (gameMode === 'campaign') {
+        failCampaignLevel();
+        return;
+    }
+    if (canRevive && score >= 0) {
         showReviveScreen(reason);
         return;
     }
@@ -1571,18 +1777,300 @@ const fbInitInterval = setInterval(() => {
     }
 }, 100);
 
-startBtn.addEventListener('click', startGame);
-restartBtn.addEventListener('click', startGame);
+survivalBtn.addEventListener('click', startSurvivalGame);
+restartBtn.addEventListener('click', () => {
+    if (gameMode === 'campaign') {
+        startCampaignLevel(currentLevelIndex);
+    } else {
+        startSurvivalGame();
+    }
+});
 
 menuBtn.addEventListener('click', () => {
     showBannerAd();
+    if (gameMode === 'campaign' && savedBgForCampaign) {
+        equippedBackground = savedBgForCampaign;
+        savedBgForCampaign = null;
+    }
     gameOverScreen.classList.remove('active');
     startScreen.classList.add('active');
-    drawGrid(); // Redibujar la cuadrícula de fondo
+    drawGrid();
 });
 
 rewardedAdBtn.addEventListener('click', () => {
     showRewardedAd();
+});
+
+// ========================
+// === CAMPAIGN UI ===
+// ========================
+
+campaignBtn.addEventListener('click', () => {
+    startScreen.classList.remove('active');
+    levelSelectScreen.classList.add('active');
+    renderLevelSelectUI();
+});
+
+closeLevelsBtn.addEventListener('click', () => {
+    levelSelectScreen.classList.remove('active');
+    startScreen.classList.add('active');
+});
+
+nextLevelBtn.addEventListener('click', () => {
+    if (currentLevelIndex < LEVELS.length - 1) {
+        startCampaignLevel(currentLevelIndex + 1);
+    } else {
+        levelCompleteScreen.classList.remove('active');
+        levelSelectScreen.classList.add('active');
+        renderLevelSelectUI();
+    }
+});
+
+replayLevelBtn.addEventListener('click', () => {
+    startCampaignLevel(currentLevelIndex);
+});
+
+levelsMenuBtn.addEventListener('click', () => {
+    showBannerAd();
+    if (savedBgForCampaign) {
+        equippedBackground = savedBgForCampaign;
+        savedBgForCampaign = null;
+    }
+    levelCompleteScreen.classList.remove('active');
+    startScreen.classList.add('active');
+    drawGrid();
+});
+
+function renderLevelSelectUI() {
+    worldTabs.innerHTML = '';
+    levelGrid.innerHTML = '';
+
+    // World tabs (only World 1 playable for now)
+    WORLDS.forEach((world, wi) => {
+        const btn = document.createElement('button');
+        btn.className = `world-tab ${wi === currentWorldIndex ? 'active' : ''} ${wi > 0 ? 'locked-tab' : ''}`;
+        btn.textContent = t[world.nameKey];
+        if (wi === 0) {
+            btn.onclick = () => {
+                currentWorldIndex = wi;
+                renderLevelSelectUI();
+            };
+        }
+        worldTabs.appendChild(btn);
+    });
+
+    // Level grid
+    for (let i = 0; i < 10; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'level-cell';
+        const isUnlocked = i <= campaignProgress.unlockedLevel;
+        const stars = campaignProgress.levelStars[i] || 0;
+
+        if (!isUnlocked) {
+            cell.classList.add('level-locked');
+        } else if (i === campaignProgress.unlockedLevel && stars === 0) {
+            cell.classList.add('level-current');
+        }
+
+        const starsHtml = [1,2,3].map(s => 
+            `<span class="${s <= stars ? 'star-on' : 'star-off'}">★</span>`
+        ).join('');
+
+        cell.innerHTML = `
+            <div class="level-number">${i + 1}</div>
+            <div class="level-stars">${starsHtml}</div>
+        `;
+
+        if (isUnlocked) {
+            cell.addEventListener('click', () => startCampaignLevel(i));
+        }
+
+        levelGrid.appendChild(cell);
+    }
+}
+
+function getObjectiveText(lvl) {
+    const tmpl = t['objective' + lvl.objective.charAt(0).toUpperCase() + lvl.objective.slice(1)];
+    if (!tmpl) return '';
+    return tmpl.replace('{0}', lvl.target);
+}
+
+function updateCampaignHUD() {
+    const lvl = LEVELS[currentLevelIndex];
+    const objText = getObjectiveText(lvl);
+    let progress = 0;
+    let current = 0;
+
+    switch (lvl.objective) {
+        case 'survive':
+            const elapsed = (lvl.duration * 60 - levelTimer) / 60;
+            current = Math.min(Math.floor(elapsed), lvl.target);
+            progress = current / lvl.target;
+            objectiveText.textContent = `⏱️ ${objText} — ${current}/${lvl.target}`;
+            break;
+        case 'kill':
+            current = levelKillsTotal;
+            progress = Math.min(1, current / lvl.target);
+            objectiveText.textContent = `💀 ${objText} — ${current}/${lvl.target}`;
+            break;
+        case 'combo':
+            current = levelMaxCombo;
+            progress = Math.min(1, current / lvl.target);
+            objectiveText.textContent = `🔥 ${objText} — x${current}`;
+            break;
+        case 'boss':
+            current = levelBossKills;
+            progress = Math.min(1, current / lvl.target);
+            objectiveText.textContent = `🟣 ${objText} — ${current}/${lvl.target}`;
+            break;
+        case 'ghost':
+            current = levelGhostKills;
+            progress = Math.min(1, current / lvl.target);
+            objectiveText.textContent = `👻 ${objText} — ${current}/${lvl.target}`;
+            break;
+    }
+
+    objectiveBar.style.width = (progress * 100) + '%';
+
+    const secsLeft = Math.max(0, Math.ceil(levelTimer / 60));
+    levelTimerDisplay.textContent = `⏱️ ${secsLeft}s`;
+}
+
+function checkLevelObjective() {
+    const lvl = LEVELS[currentLevelIndex];
+    switch (lvl.objective) {
+        case 'survive':
+            const elapsed = (lvl.duration * 60 - levelTimer) / 60;
+            return elapsed >= lvl.target;
+        case 'kill':
+            return levelKillsTotal >= lvl.target;
+        case 'combo':
+            return levelMaxCombo >= lvl.target;
+        case 'boss':
+            return levelBossKills >= lvl.target;
+        case 'ghost':
+            return levelGhostKills >= lvl.target;
+    }
+    return false;
+}
+
+function calculateStars() {
+    const lvl = LEVELS[currentLevelIndex];
+    let stars = 1; // Completed = 1 star
+
+    // Star 2: combo x2 achieved OR shield not lost
+    if (levelMaxCombo >= 2 || (upgrades.shield && !levelShieldLost)) {
+        stars = 2;
+    }
+
+    // Star 3: time remaining > 50% (for non-survive) OR killed many extra
+    const timeRemaining = levelTimer / (lvl.duration * 60);
+    if (lvl.objective !== 'survive' && timeRemaining > 0.5) {
+        stars = 3;
+    } else if (lvl.objective === 'survive' && levelKillsTotal >= 10) {
+        stars = 3;
+    }
+
+    return stars;
+}
+
+function completeCampaignLevel() {
+    gameState = 'LEVEL_COMPLETE';
+    hud.classList.remove('active');
+    objectiveHud.style.display = 'none';
+    showBannerAd();
+
+    const stars = calculateStars();
+    const previousStars = campaignProgress.levelStars[currentLevelIndex];
+    const previousPaid = campaignProgress.coinsCollected[currentLevelIndex] || 0;
+
+    // Only update if better
+    if (stars > previousStars) {
+        campaignProgress.levelStars[currentLevelIndex] = stars;
+    }
+
+    // Unlock next level
+    if (currentLevelIndex + 1 > campaignProgress.unlockedLevel && currentLevelIndex + 1 < LEVELS.length) {
+        campaignProgress.unlockedLevel = currentLevelIndex + 1;
+    }
+
+    // Calculate coin reward (only pay the difference)
+    const newMaxStars = Math.max(stars, previousStars);
+    const alreadyPaid = COIN_REWARDS[previousPaid] || 0;
+    const totalDeserved = COIN_REWARDS[newMaxStars] || 0;
+    const coinsToAdd = Math.max(0, totalDeserved - alreadyPaid);
+    campaignProgress.coinsCollected[currentLevelIndex] = newMaxStars;
+
+    totalCoins += coinsToAdd;
+    localStorage.setItem('devourer_total_coins', totalCoins);
+    if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
+    if (storeTotalCoinsDisplay) storeTotalCoinsDisplay.innerText = totalCoins;
+
+    saveCampaignProgress();
+
+    // Show UI
+    levelResultTitle.textContent = t.levelComplete;
+    levelResultTitle.classList.remove('failed');
+    levelNameDisplay.textContent = `${t.level} ${currentLevelIndex + 1} — ${t.levelNames[currentLevelIndex]}`;
+    levelRewardDisplay.textContent = coinsToAdd > 0 ? `+${coinsToAdd} 🪙` : '—';
+
+    // Animate stars
+    ['star-1', 'star-2', 'star-3'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        el.classList.remove('earned');
+        if (i < stars) {
+            setTimeout(() => el.classList.add('earned'), (i + 1) * 400);
+        }
+    });
+
+    // Next level button visibility
+    nextLevelBtn.style.display = currentLevelIndex < LEVELS.length - 1 ? 'block' : 'none';
+
+    levelCompleteScreen.classList.add('active');
+
+    // Restore background
+    if (savedBgForCampaign) {
+        equippedBackground = savedBgForCampaign;
+        savedBgForCampaign = null;
+    }
+}
+
+function failCampaignLevel() {
+    gameState = 'LEVEL_COMPLETE';
+    hud.classList.remove('active');
+    objectiveHud.style.display = 'none';
+    showBannerAd();
+    triggerVibration('heavy');
+
+    levelResultTitle.textContent = t.levelFailed;
+    levelResultTitle.classList.add('failed');
+    levelNameDisplay.textContent = `${t.level} ${currentLevelIndex + 1} — ${t.levelNames[currentLevelIndex]}`;
+    levelRewardDisplay.textContent = '—';
+    nextLevelBtn.style.display = 'none';
+
+    ['star-1', 'star-2', 'star-3'].forEach(id => {
+        document.getElementById(id).classList.remove('earned');
+    });
+
+    levelCompleteScreen.classList.add('active');
+
+    if (savedBgForCampaign) {
+        equippedBackground = savedBgForCampaign;
+        savedBgForCampaign = null;
+    }
+}
+
+// Track shield loss for star calculation
+const _origVIPShieldSet = Object.getOwnPropertyDescriptor(VIP, 'hasShield');
+let _vipShieldVal = VIP.hasShield;
+Object.defineProperty(VIP, 'hasShield', {
+    get() { return _vipShieldVal; },
+    set(val) {
+        if (_vipShieldVal === true && val === false && gameMode === 'campaign') {
+            levelShieldLost = true;
+        }
+        _vipShieldVal = val;
+    }
 });
 
 drawGrid();

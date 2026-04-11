@@ -35,7 +35,8 @@
                 <div class="coins-display">🪙 <span id="start-coins">0</span></div>
             </div>
             <div class="menu-buttons">
-                <button id="start-btn">JUGAR</button>
+                <button id="survival-btn" style="width: 100%;">SUPERVIVENCIA</button>
+                <button id="campaign-btn" class="campaign-btn" style="width: 100%;">CAMPAÑA</button>
                 <div style="display: flex; gap: 10px; width: 100%;">
                     <button id="store-btn" class="secondary-btn" style="flex: 1;">TIENDA</button>
                     <button id="ranking-btn" class="secondary-btn" style="flex: 1;">RANKING</button>
@@ -79,9 +80,45 @@
             </div>
         </div>
 
+        <!-- Level Select Screen -->
+        <div id="level-select-screen" class="screen">
+            <h1 id="lbl-campaign-title">CAMPAÑA</h1>
+            <div id="world-tabs" class="world-tabs"></div>
+            <div class="level-grid-container">
+                <div id="level-grid" class="level-grid"></div>
+            </div>
+            <button id="close-levels-btn" class="secondary-btn">VOLVER</button>
+        </div>
+
+        <!-- Level Complete Screen -->
+        <div id="level-complete-screen" class="screen">
+            <h2 id="level-result-title">¡NIVEL COMPLETADO!</h2>
+            <div id="level-name-display" class="level-name-display"></div>
+            <div id="stars-display" class="stars-display">
+                <span class="star" id="star-1">★</span>
+                <span class="star" id="star-2">★</span>
+                <span class="star" id="star-3">★</span>
+            </div>
+            <div id="level-reward-display" class="level-reward-display"></div>
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                <button id="next-level-btn" style="width: 100%;">SIGUIENTE</button>
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <button id="replay-level-btn" class="secondary-btn" style="flex: 1;">REPETIR</button>
+                    <button id="levels-menu-btn" class="secondary-btn" style="flex: 1;">MENÚ</button>
+                </div>
+            </div>
+        </div>
+
         <!-- HUD -->
         <div id="hud" class="screen">
             <div id="score-display"></div>
+            <div id="objective-hud" class="objective-hud" style="display: none;">
+                <div id="objective-text" class="objective-text"></div>
+                <div class="objective-bar-bg">
+                    <div id="objective-bar" class="objective-bar"></div>
+                </div>
+                <div id="level-timer" class="level-timer"></div>
+            </div>
         </div>
 
         <!-- Game Over Screen -->
