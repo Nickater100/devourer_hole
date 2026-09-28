@@ -1,37 +1,48 @@
 # Privacy Policy for Angry Ball
 
-Last updated: March 24, 2026
+Last updated: September 28, 2026
 
-**Angry Ball** ("the App") is provided by Nickater. This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our App.
+**Angry Ball** ("the App") is provided by Nickater. This page explains what data the App collects, why, who it is shared with, and how you can delete it.
 
-## 1. Information Collection and Use
-We do not collect any personally identifiable information from our users.
+## 1. Data We Collect
 
-## 2. Third-Party Services
-The App uses third-party services that may collect information used to identify you:
-*   **Google Play Services:** Used for game functionality and leaderboard.
-*   **AdMob:** Used to display advertisements. AdMob may collect device identifiers to serve personalized ads.
-*   **Firebase Analytics:** Used to understand app performance and usage.
+### If you sign in with Google (optional)
+Signing in is only needed to appear on the global leaderboard. When you sign in, we collect through Firebase (Google):
+*   **Your Google account user ID**, used to identify your leaderboard entry.
+*   **Your email address**, handled by Firebase Authentication to manage your account. It is never shown to other players.
+*   **Your display name and profile photo URL**, shown next to your score on the public leaderboard.
+*   **Your high score**, shown on the public leaderboard.
 
-## 3. Data Storage
-Game progress (scores and coins) is stored locally on your device and may be synced with your Google Play Games account if you sign in.
+This data is used only for app functionality (the leaderboard) and account management. It is not sold and not used for advertising.
+
+### Advertising (all users)
+The App shows ads through **Appodeal** and the ad networks it works with. To serve and measure ads and prevent fraud, these services may collect:
+*   **Device identifiers**, such as the Android advertising ID.
+*   **Approximate location**, inferred from your IP address.
+*   **App interactions**, such as ads viewed and clicked.
+*   **Diagnostics**, such as crash logs and performance data.
+
+This data is shared with Appodeal and its advertising partners. You can reset or delete your advertising ID, or opt out of personalized ads, in your Android settings (Settings → Google → Ads / Privacy → Ads).
+Appodeal's privacy policy: https://appodeal.com/privacy-policy
+
+The App does not request location permissions and does not access your contacts, files, camera, or microphone.
+
+## 2. Data Stored on Your Device
+Game progress (coins, campaign progress, unlocked skins, and upgrades) is stored only on your device. It is not uploaded.
+
+## 3. Security
+All data sent by the App is encrypted in transit (HTTPS).
 
 ## 4. Children's Privacy
-Our App does not address anyone under the age of 13. We do not knowingly collect personally identifiable information from children.
+The App is not directed at children under 13. We do not knowingly collect personal information from children.
 
-## 6. Account and Data Deletion
+## 5. Account and Data Deletion
 
-In compliance with Google Play Developer policies, users of **Angry Ball** (developed by Nickater) have the right to request the deletion of their account and associated data.
+**Deleting it in the App:** open Settings (⚙️) on the start screen and tap **Delete Account**. This permanently removes your leaderboard entry (user ID, display name, photo URL, and score) and your sign-in account.
 
-**What data is deleted?**
-If you request account deletion, we will permanently delete from our Firebase database:
-*   Your associated Google Account ID.
-*   Your display name.
-*   Your high score on the global leaderboard.
-Local game data (coins, unlocked skins) stored on your device must be cleared manually by uninstalling the app or clearing the app's data in Android Settings.
+**Deleting it by email:** send an email to *nicosuasnavar@gmail.com* with the subject "Angry Ball - Data Deletion Request". Include the exact name that appears on the global leaderboard. We will process your request within 7 business days.
 
-**How to request data deletion:**
-To request the deletion of your account and data, please send an email to *nicosuasnavar@gmail.com* with the subject "Angry Ball - Data Deletion Request". Please include the exact name that appears on the global leaderboard so we can identify and remove your record. We will process your request within 7 business days.
+Local game data (coins, unlocked skins) is removed when you uninstall the App or clear its data in Android Settings.
 
-## 7. Contact Us
+## 6. Contact Us
 If you have any questions about this Privacy Policy, please contact us at *nicosuasnavar@gmail.com*.
