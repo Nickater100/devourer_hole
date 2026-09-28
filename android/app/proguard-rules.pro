@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# --- Appodeal ---
+# Anotaciones de análisis estático de Meta Audience Network que no viajan con
+# la librería; R8 las reclama como faltantes aunque no se usan en ejecución.
+-dontwarn com.facebook.infer.annotation.**
+# El puente con JS se encuentra por reflexión (@CapacitorPlugin/@PluginMethod).
+-keep class com.nickater.devourer.AppodealPlugin { *; }

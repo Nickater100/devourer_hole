@@ -190,107 +190,98 @@ function saveCampaignProgress() {
     localStorage.setItem('devourer_campaign', JSON.stringify(campaignProgress));
 }
 
-// --- AdMob Initialization ---
-let isAdMobInitialized = false;
+// --- Publicidad (Appodeal) ---
+// AdMob se reemplazó por Appodeal: la cuenta de AdMob fue bloqueada. El puente
+// nativo es android/app/src/main/java/com/nickater/devourer/AppodealPlugin.java.
+// La App Key no es secreta: viaja dentro de la APK igual que el App ID de AdMob.
+const APPODEAL_APP_KEY = '408d127411f45563a89079734c1852c6bbde94c46d5fecbc';
+// Modo prueba: anuncios de prueba, que no pagan pero tampoco arriesgan la cuenta.
+// Se activa en un build de desarrollo con localStorage 'devourer_ads_testing' = '1'.
+const ADS_TESTING = localStorage.getItem('devourer_ads_testing') === '1';
+
+let isAdsInitialized = false;
 let deathsCount = parseInt(localStorage.getItem('devourer_deaths_count')) || 0;
 let campaignPlaysCount = parseInt(localStorage.getItem('devourer_campaign_plays')) || 0;
 
+const getAds = () => window.Capacitor?.Plugins?.Appodeal;
+
 setTimeout(async () => {
-    if (window.AdMobPlugin) {
-        try {
-            await window.AdMobPlugin.initialize({
-                requestTrackingAuthorization: true,
-                initializeForTesting: false
-            });
-            isAdMobInitialized = true;
-            console.log("AdMob initialized successfully");
-            
-            // Mostrar Banner al inicio
-            showBannerAd();
-            
-            // Función centralizada para otorgar la recompensa
-            const grantReward = (reward) => {
-                console.log("[ADMOB] Reward received event triggered!", reward);
-                
-                if (pendingRewardAction === 'revive') {
-                    revivePlayer();
-                    return;
-                }
-
-                totalCoins += 100;
-                localStorage.setItem('devourer_total_coins', totalCoins);
-                if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
-                if (storeTotalCoinsDisplay) storeTotalCoinsDisplay.innerText = totalCoins;
-                
-                // Feedback visual sin bloquear el hilo principal (evita cuelgues con el Ad)
-                const originalText = rewardedAdBtn.textContent;
-                rewardedAdBtn.textContent = "✅ +100 🪙";
-                rewardedAdBtn.style.backgroundColor = "rgba(46, 204, 113, 0.4)";
-                setTimeout(() => {
-                    rewardedAdBtn.textContent = originalText;
-                    rewardedAdBtn.style.backgroundColor = "";
-                }, 3000);
-            };
-
-            // Intentar con ambos nombres de eventos por compatibilidad entre versiones del plugin
-            window.AdMobPlugin.addListener('rewardVideoAdRewardReceived', grantReward);
-            window.AdMobPlugin.addListener('onRewardedVideoAdReward', grantReward);
-            
-            console.log("[ADMOB] Listeners for rewarded ads added.");
-
-        } catch (e) {
-            console.error("AdMob initialization error", e);
-        }
+    const Ads = getAds();
+    if (!Ads || !window.Capacitor?.isNativePlatform?.()) return;
+    try {
+        await Ads.initialize({ appKey: APPODEAL_APP_KEY, testing: ADS_TESTING });
+        isAdsInitialized = true;
+        console.log("Appodeal initialized successfully");
+        showBannerAd();
+    } catch (e) {
+        console.error("Appodeal initialization error", e);
     }
 }, 500);
 
+// Otorga la recompensa de un video visto entero.
+function grantReward() {
+    if (pendingRewardAction === 'revive') {
+        revivePlayer();
+        return;
+    }
+
+    totalCoins += 100;
+    localStorage.setItem('devourer_total_coins', totalCoins);
+    if (startCoinsDisplay) startCoinsDisplay.innerText = totalCoins;
+    if (storeTotalCoinsDisplay) storeTotalCoinsDisplay.innerText = totalCoins;
+
+    // Feedback visual sin bloquear el hilo principal
+    const originalText = rewardedAdBtn.textContent;
+    rewardedAdBtn.textContent = "✅ +100 🪙";
+    rewardedAdBtn.style.backgroundColor = "rgba(46, 204, 113, 0.4)";
+    setTimeout(() => {
+        rewardedAdBtn.textContent = originalText;
+        rewardedAdBtn.style.backgroundColor = "";
+    }, 3000);
+}
+
 async function showBannerAd() {
-    if (!isAdMobInitialized) return;
+    if (!isAdsInitialized) return;
     try {
-        await window.AdMobPlugin.showBanner({
-            adId: 'ca-app-pub-1547228404922892/8486628826', 
-            adSize: 'BANNER',
-            position: 'BOTTOM_CENTER',
-            margin: 0,
-            isTesting: false
-        });
+        await getAds().showBanner();
     } catch (e) {
-        console.error("Error showing AdMob Banner", e);
+        console.error("Error showing banner", e);
     }
 }
 
 async function hideBannerAd() {
-    if (!isAdMobInitialized) return;
+    if (!isAdsInitialized) return;
     try {
-        await window.AdMobPlugin.hideBanner();
+        await getAds().hideBanner();
     } catch (e) {
-        console.error("Error hiding AdMob Banner", e);
+        console.error("Error hiding banner", e);
     }
 }
 
 async function showInterstitialAd() {
-    if (!isAdMobInitialized) return;
+    if (!isAdsInitialized) return;
     try {
-        await window.AdMobPlugin.prepareInterstitial({
-            adId: 'ca-app-pub-1547228404922892/8976645036',
-            isTesting: false
-        });
-        await window.AdMobPlugin.showInterstitial();
+        await getAds().showInterstitial();
     } catch (e) {
-        console.error("Error showing AdMob Interstitial", e);
+        console.error("Error showing interstitial", e);
     }
 }
 
 async function showRewardedAd() {
-    if (!isAdMobInitialized) return;
+    if (!isAdsInitialized) {
+        alert("El video no está disponible en este momento.");
+        return;
+    }
     try {
-        await window.AdMobPlugin.prepareRewardVideoAd({
-            adId: 'ca-app-pub-1547228404922892/4547383818', 
-            isTesting: false
-        });
-        await window.AdMobPlugin.showRewardVideoAd();
+        // Resuelve cuando el video se cierra: `finished` dice si se vio entero.
+        const r = await getAds().showRewarded();
+        if (!r.shown) {
+            alert("El video no está disponible en este momento.");
+            return;
+        }
+        if (r.finished) grantReward();
     } catch (e) {
-        console.error("Error showing AdMob Rewarded Video", e);
+        console.error("Error showing rewarded video", e);
         alert("El video no está disponible en este momento.");
     }
 }

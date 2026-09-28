@@ -1,0 +1,141 @@
+# Cada push a main arma el AAB firmado y lo sube a Google Play.
+#
+# Secretos que tiene que tener el repo (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_PASSWORD  contraseña del keystore angry-ball.jks
+#   ANDROID_KEY_ALIAS          alias de la clave dentro del keystore
+#   ANDROID_KEY_PASSWORD       contraseña de esa clave
+#   PLAY_SERVICE_ACCOUNT_JSON  JSON de una cuenta de servicio con permiso de
+#                              "Publicar versiones" sobre Angry Ball en Play Console
+#
+# Si falta alguno, el job avisa y no sube nada, en vez de fallar en rojo.
+name: Release a Google Play
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Dos pushes seguidos no suben dos versiones pisándose.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # La pista de Play a la que se sube. `production` publica para todos (después
+  # de la revisión de Google); cambiar a `internal` o `alpha` para probar antes.
+  PLAY_TRACK: production
+  PACKAGE_NAME: com.nickater.devourer
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ¿Están los secretos?
+        id: secretos
+        env:
+          A: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          B: ${{ secrets.ANDROID_KEY_ALIAS }}
+          C: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          D: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$A" ] && [ -n "$B" ] && [ -n "$C" ] && [ -n "$D" ]; then
+            echo "hay=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "hay=no" >> "$GITHUB_OUTPUT"
+            echo "::warning::Faltan secretos de firma o de Play: no se sube nada. Ver el encabezado de release.yml."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.secretos.outputs.hay == 'si'
+        with:
+          node-version: 22
+          cache: npm
+
+      # JDK 21: Capacitor 8 compila con Java 21 y el plugin de Gradle de Android
+      # todavía no acepta el 24.
+      - uses: actions/setup-java@v4
+        if: steps.secretos.outputs.hay == 'si'
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      # `.npmrc` trae legacy-peer-deps: el plugin de Google Auth declara
+      # Capacitor 6 como peer y sin eso npm ci no instala.
+      - run: npm ci
+        if: steps.secretos.outputs.hay == 'si'
+
+      # `cap sync` genera capacitor-cordova-android-plugins/ y copia www/ adentro
+      # de la app; los dos están ignorados por git, así que sin esto el AAB no
+      # compila o sale sin el juego.
+      - name: Armar el juego y sincronizarlo con Android
+        if: steps.secretos.outputs.hay == 'si'
+        run: |
+          node build.js
+          npx cap sync android
+          test -f android/app/src/main/assets/public/index.html || {
+            echo "::error::cap sync no copió el juego: el AAB saldría vacío."; exit 1; }
+
+      # El versionCode sale del número de corrida: Play rechaza repetir uno y
+      # run_number nunca se repite. El +1000 deja atrás a las versiones que se
+      # subieron a mano antes de automatizar.
+      - name: Poner el versionCode
+        if: steps.secretos.outputs.hay == 'si'
+        run: |
+          VC=$((1000 + ${{ github.run_number }}))
+          sed -i -E "s/versionCode [0-9]+/versionCode $VC/" android/app/build.gradle
+          grep -n "versionCode" android/app/build.gradle
+
+      - name: Armar el AAB firmado
+        if: steps.secretos.outputs.hay == 'si'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/angry-ball.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        # El chmod es porque desde Windows git no guarda el bit de ejecutable.
+        run: |
+          chmod +x ./gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      # Un AAB sin firmar se genera igual y Play lo rechaza recién al subirlo.
+      - name: Verificar que quedó firmado
+        if: steps.secretos.outputs.hay == 'si'
+        run: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify "$AAB" | grep -q "jar verified" || {
+            echo "::error::El AAB no quedó firmado. Revisar los secretos del keystore."; exit 1; }
+
+      # Si el SDK de Google Ads entrara por alguna dependencia sin su App ID en el
+      # manifiesto, la app crashea al abrir. Se mira el AAB que se va a subir.
+      - name: Verificar que no viaja el SDK de AdMob
+        if: steps.secretos.outputs.hay == 'si'
+        run: |
+          M=android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml
+          test -f "$M" || { echo "::error::No encuentro el manifiesto final en $M."; exit 1; }
+          if grep -q "MobileAdsInitProvider" "$M" && ! grep -q "com.google.android.gms.ads.APPLICATION_ID" "$M"; then
+            echo "::error::El AAB trae el SDK de Google Ads sin App ID: crashearía al abrir."; exit 1; fi
+          grep -o 'android:targetSdkVersion="[0-9]*"' "$M"
+
+      # Queda como artefacto ANTES de subir: si Play lo rechaza, se puede bajar.
+      - uses: actions/upload-artifact@v4
+        if: steps.secretos.outputs.hay == 'si'
+        with:
+          name: angry-ball-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Subir a Play
+        if: steps.secretos.outputs.hay == 'si'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ env.PLAY_TRACK }}
+          status: completed
