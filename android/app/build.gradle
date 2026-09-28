@@ -22,7 +22,7 @@ android {
     }
     /*
      * Firma de release. La CI pasa todo por variables de entorno (ver
-     * .github/workflows/release.yml); en local, si no est·n, el release sale sin
+     * .github/workflows/release.yml); en local, si no est√°n, el release sale sin
      * firmar y se firma desde Android Studio como antes.
      */
     signingConfigs {
@@ -68,17 +68,20 @@ dependencies {
      * Appodeal (reemplaza a AdMob, cuya cuenta fue bloqueada). Sale del
      * generador oficial (docs.appodeal.com/android/advanced/configure-mediated-networks)
      * con el motor de Appodeal y SUS adaptadores, SIN:
-     *  - AdMob y Google Ad Manager: la cuenta de Google est· bloqueada.
+     *  - AdMob y Google Ad Manager: la cuenta de Google est√° bloqueada.
      *  - los motores de terceros (AppLovin MAX, Level Play, Bidon): cada uno trae
      *    su propia pila de adaptadores y no hace falta para empezar.
+     *  - myTarget (VK): su adaptador fija la Play Billing Library en [7, 8), y Play
+     *    RECHAZA cualquier AAB con Billing menor a 8 ‚Äî el primer release
+     *    autom√°tico rebot√≥ por eso.
      *  - los servicios (Adjust, AppsFlyer, Firebase, Meta Analytics, Sentry): son
-     *    para campaÒas de adquisiciÛn; Firebase adem·s choca con el del juego.
+     *    para campa√±as de adquisici√≥n; Firebase adem√°s choca con el del juego.
      */
     def appodealAdapters = [
         'amazon:12.0.0.0', 'applovin:13.6.3.0', 'bidmachine:3.7.1.0', 'bigo_ads:5.9.0.0',
         'chartboost:9.10.2.0', 'dt_exchange:8.4.6.0', 'iab:1.8.1.1', 'inmobi:11.3.0.0',
         'meta:6.21.0.0', 'mintegral:17.1.61.0', 'mobilefuse:1.11.0.0', 'moloco:4.3.1.0',
-        'my_target:5.47.1.0', 'ogury:6.2.0.0', 'pubmatic:4.10.0.0', 'smaato:22.7.2.0',
+        'ogury:6.2.0.0', 'pubmatic:4.10.0.0', 'smaato:22.7.2.0',
         'startio:5.2.4.0', 'taurusx:1.12.2.0', 'unity_ads:4.17.0.0', 'verve:3.7.1.0',
         'vungle:7.7.4.0', 'yandex:7.17.0.0',
     ]

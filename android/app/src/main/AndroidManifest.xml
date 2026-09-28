@@ -38,8 +38,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- Algunas redes de Appodeal agregan permisos de ubicación. El juego no los
-         usa, y Play rechaza pedirlos sólo para publicidad. -->
+    <!-- Algunas redes de Appodeal agregan permisos de ubicaciÃ³n. El juego no los
+         usa, y Play rechaza pedirlos sÃ³lo para publicidad. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />
 </manifest>
