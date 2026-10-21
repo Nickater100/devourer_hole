@@ -112,9 +112,9 @@ jobs:
           jarsigner -verify "$AAB" | grep -q "jar verified" || {
             echo "::error::El AAB no quedó firmado. Revisar los secretos del keystore."; exit 1; }
 
-      # Si el SDK de Google Ads entrara por alguna dependencia sin su App ID en el
-      # manifiesto, la app crashea al abrir. Se mira el AAB que se va a subir.
-      - name: Verificar que no viaja el SDK de AdMob
+      # Sin el App ID de AdMob en el manifiesto, el SDK de Google Ads crashea la
+      # app al abrir. Se mira el AAB que se va a subir.
+      - name: Verificar el App ID de AdMob
         if: steps.secretos.outputs.hay == 'si'
         run: |
           M=android/app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml

@@ -190,31 +190,38 @@ function saveCampaignProgress() {
     localStorage.setItem('devourer_campaign', JSON.stringify(campaignProgress));
 }
 
-// --- Publicidad (Appodeal) ---
-// AdMob se reemplazó por Appodeal: la cuenta de AdMob fue bloqueada. El puente
-// nativo es android/app/src/main/java/com/nickater/devourer/AppodealPlugin.java.
-// La App Key no es secreta: viaja dentro de la APK igual que el App ID de AdMob.
-const APPODEAL_APP_KEY = '408d127411f45563a89079734c1852c6bbde94c46d5fecbc';
-// Modo prueba: anuncios de prueba, que no pagan pero tampoco arriesgan la cuenta.
-// Se activa en un build de desarrollo con localStorage 'devourer_ads_testing' = '1'.
+// --- Publicidad (AdMob) ---
+// Volvió AdMob (@capacitor-community/admob, que admob-init.js expone como
+// window.AdMobPlugin). Mientras la cuenta esté suspendida no llegan anuncios:
+// el juego sigue igual y el video avisa que no está disponible. Cuando la
+// rehabiliten, vuelven solos sin tocar nada.
+// El App ID va en AndroidManifest.xml; estos son los bloques de anuncios.
+const ADMOB_BANNER_ID = 'ca-app-pub-1547228404922892/8486628826';
+const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-1547228404922892/8976645036';
+const ADMOB_REWARDED_ID = 'ca-app-pub-1547228404922892/4547383818';
+// Modo prueba: anuncios de prueba, que no pagan pero tampoco arriesgan la cuenta
+// (la suspensión fue por clics propios). Se activa con localStorage
+// 'devourer_ads_testing' = '1'.
 const ADS_TESTING = localStorage.getItem('devourer_ads_testing') === '1';
 
 let isAdsInitialized = false;
 let deathsCount = parseInt(localStorage.getItem('devourer_deaths_count')) || 0;
 let campaignPlaysCount = parseInt(localStorage.getItem('devourer_campaign_plays')) || 0;
 
-const getAds = () => window.Capacitor?.Plugins?.Appodeal;
+const getAds = () => window.AdMobPlugin;
 
 setTimeout(async () => {
     const Ads = getAds();
     if (!Ads || !window.Capacitor?.isNativePlatform?.()) return;
     try {
-        await Ads.initialize({ appKey: APPODEAL_APP_KEY, testing: ADS_TESTING });
+        await Ads.initialize({ initializeForTesting: ADS_TESTING });
+        // AdMob avisa la recompensa por evento, aparte del cierre del video.
+        Ads.addListener('onRewardedVideoAdReward', grantReward);
         isAdsInitialized = true;
-        console.log("Appodeal initialized successfully");
+        console.log("AdMob initialized successfully");
         showBannerAd();
     } catch (e) {
-        console.error("Appodeal initialization error", e);
+        console.error("AdMob initialization error", e);
     }
 }, 500);
 
@@ -243,7 +250,13 @@ function grantReward() {
 async function showBannerAd() {
     if (!isAdsInitialized) return;
     try {
-        await getAds().showBanner();
+        await getAds().showBanner({
+            adId: ADMOB_BANNER_ID,
+            adSize: 'BANNER',
+            position: 'BOTTOM_CENTER',
+            margin: 0,
+            isTesting: ADS_TESTING
+        });
     } catch (e) {
         console.error("Error showing banner", e);
     }
@@ -261,6 +274,7 @@ async function hideBannerAd() {
 async function showInterstitialAd() {
     if (!isAdsInitialized) return;
     try {
+        await getAds().prepareInterstitial({ adId: ADMOB_INTERSTITIAL_ID, isTesting: ADS_TESTING });
         await getAds().showInterstitial();
     } catch (e) {
         console.error("Error showing interstitial", e);
@@ -273,13 +287,10 @@ async function showRewardedAd() {
         return;
     }
     try {
-        // Resuelve cuando el video se cierra: `finished` dice si se vio entero.
-        const r = await getAds().showRewarded();
-        if (!r.shown) {
-            alert("El video no está disponible en este momento.");
-            return;
-        }
-        if (r.finished) grantReward();
+        // Si no hay anuncio, prepare falla y cae en el catch. La recompensa la
+        // da el listener de 'onRewardedVideoAdReward', sólo si se vio entero.
+        await getAds().prepareRewardVideoAd({ adId: ADMOB_REWARDED_ID, isTesting: ADS_TESTING });
+        await getAds().showRewardVideoAd();
     } catch (e) {
         console.error("Error showing rewarded video", e);
         alert("El video no está disponible en este momento.");

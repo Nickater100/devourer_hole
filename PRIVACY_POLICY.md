@@ -1,6 +1,6 @@
 # Privacy Policy for Angry Ball
 
-Last updated: September 28, 2026
+Last updated: October 21, 2026
 
 **Angry Ball** ("the App") is provided by Nickater. This page explains what data the App collects, why, who it is shared with, and how you can delete it.
 
@@ -16,14 +16,14 @@ Signing in is only needed to appear on the global leaderboard. When you sign in,
 This data is used only for app functionality (the leaderboard) and account management. It is not sold and not used for advertising.
 
 ### Advertising (all users)
-The App shows ads through **Appodeal** and the ad networks it works with. To serve and measure ads and prevent fraud, these services may collect:
+The App shows ads through **Google AdMob**. To serve and measure ads and prevent fraud, these services may collect:
 *   **Device identifiers**, such as the Android advertising ID.
 *   **Approximate location**, inferred from your IP address.
 *   **App interactions**, such as ads viewed and clicked.
 *   **Diagnostics**, such as crash logs and performance data.
 
-This data is shared with Appodeal and its advertising partners. You can reset or delete your advertising ID, or opt out of personalized ads, in your Android settings (Settings → Google → Ads / Privacy → Ads).
-Appodeal's privacy policy: https://appodeal.com/privacy-policy
+This data is shared with Google. You can reset or delete your advertising ID, or opt out of personalized ads, in your Android settings (Settings → Google → Ads / Privacy → Ads).
+How Google uses this data: https://policies.google.com/technologies/partner-sites
 
 The App does not request location permissions and does not access your contacts, files, camera, or microphone.
 

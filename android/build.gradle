@@ -21,8 +21,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        // SDK de Appodeal y sus adaptadores de redes.
-        maven { url 'https://artifactory.appodeal.com/appodeal' }
     }
 }
 
