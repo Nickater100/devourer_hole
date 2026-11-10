@@ -2,13 +2,17 @@ apply plugin: 'com.android.application'
 
 android {
     namespace = "com.nickater.devourer"
+    // BuildConfig.DEBUG lo usa LevelPlayPlugin para abrir el Test Suite sólo en debug.
+    buildFeatures {
+        buildConfig = true
+    }
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.nickater.devourer"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 11
-        versionName "1.1.0"
+        versionCode 12
+        versionName "1.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -64,6 +68,40 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+
+    /*
+     * Unity LevelPlay (ex ironSource), el mismo mediador de Astragal. El puente
+     * con el juego es LevelPlayPlugin.java, en esta misma app.
+     *
+     * LevelPlay es un MEDIADOR: cada red se suma con su adaptador acá Y se activa
+     * en el panel (platform.ironsrc.com, app "Angry Ball"). Un adaptador que no
+     * está compilado no se puede activar desde el panel: hace falta una versión
+     * nueva en Play.
+     *
+     * Cada par es adaptador + SDK de la red, y LA VERSIÓN DEL SDK NO SE ELIGE: es
+     * la que declara el CHANGELOG de ese adaptador
+     * (github.com/ironsource-mobile/levelplay-android-adapters). Subir uno sin
+     * el otro compila y la red no muestra nada.
+     *
+     * El mediation-sdk va en 9.6.1 porque es el mínimo del adaptador de AdMob; los
+     * demás lo aceptan. ironSource Ads viene dentro del mediation-sdk.
+     */
+    implementation 'com.unity3d.ads-mediation:mediation-sdk:9.6.1'
+    implementation 'com.unity3d.ads-mediation:unityads-adapter:5.13.0'   // Unity Ads
+    implementation 'com.unity3d.ads:unity-ads:4.20.1'
+    implementation 'com.unity3d.ads-mediation:vungle-adapter:5.15.0'     // Liftoff
+    implementation 'com.vungle:vungle-ads:7.7.8'
+
+    /*
+     * ADMOB, COMO UNA RED MÁS DE LEVELPLAY (y no con su plugin de Capacitor, que
+     * se sacó). Desde el adaptador 5.10.0 usa el SDK "Next Gen" de Google
+     * (ads-mobile-sdk) y no play-services-ads: el App ID YA NO SE LEE DEL
+     * MANIFIESTO, LevelPlay lo pasa al iniciar desde su panel (SDK Networks →
+     * AdMob). Desde el 5.18.0 el adaptador declara su SDK como dependencia. Los
+     * dos SDK de Google Ads no pueden convivir: si alguna dependencia trajera
+     * play-services-ads, el build falla por clases duplicadas.
+     */
+    implementation 'com.unity3d.ads-mediation:admob-adapter:5.19.0'
 }
 
 apply from: 'capacitor.build.gradle'

@@ -190,38 +190,41 @@ function saveCampaignProgress() {
     localStorage.setItem('devourer_campaign', JSON.stringify(campaignProgress));
 }
 
-// --- Publicidad (AdMob) ---
-// Volvió AdMob (@capacitor-community/admob, que admob-init.js expone como
-// window.AdMobPlugin). Mientras la cuenta esté suspendida no llegan anuncios:
-// el juego sigue igual y el video avisa que no está disponible. Cuando la
-// rehabiliten, vuelven solos sin tocar nada.
-// El App ID va en AndroidManifest.xml; estos son los bloques de anuncios.
-const ADMOB_BANNER_ID = 'ca-app-pub-1547228404922892/8486628826';
-const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-1547228404922892/8976645036';
-const ADMOB_REWARDED_ID = 'ca-app-pub-1547228404922892/4547383818';
-// Modo prueba: anuncios de prueba, que no pagan pero tampoco arriesgan la cuenta
-// (la suspensión fue por clics propios). Se activa con localStorage
-// 'devourer_ads_testing' = '1'.
-const ADS_TESTING = localStorage.getItem('devourer_ads_testing') === '1';
+// --- Publicidad (Unity LevelPlay) ---
+// LevelPlay (ex ironSource) es un mediador: subasta cada anuncio entre ironSource
+// Ads, Unity Ads, Liftoff y AdMob, como en Astragal. El puente nativo es
+// android/app/src/main/java/com/nickater/devourer/LevelPlayPlugin.java; las redes
+// y sus IDs se configuran en el panel (platform.ironsrc.com, app "Angry Ball").
+// Ninguno de estos IDs es secreto: viajan dentro de la APK.
+const LEVELPLAY_APP_KEY = '297377bbd';
+const LEVELPLAY_BANNER_ID = 'brypbzu64gljahwi';
+const LEVELPLAY_INTERSTITIAL_ID = 'nq4vvzfu9prg5kog';
+const LEVELPLAY_REWARDED_ID = 'vne8ekdur6r1mfm0';
+// Los anuncios de prueba se ven con el Test Suite de LevelPlay, que el plugin
+// habilita sólo en builds de debug (window.Capacitor.Plugins.LevelPlay.launchTestSuite()).
 
 let isAdsInitialized = false;
 let deathsCount = parseInt(localStorage.getItem('devourer_deaths_count')) || 0;
 let campaignPlaysCount = parseInt(localStorage.getItem('devourer_campaign_plays')) || 0;
 
-const getAds = () => window.AdMobPlugin;
+const getAds = () => window.Capacitor?.Plugins?.LevelPlay;
 
 setTimeout(async () => {
     const Ads = getAds();
     if (!Ads || !window.Capacitor?.isNativePlatform?.()) return;
     try {
-        await Ads.initialize({ initializeForTesting: ADS_TESTING });
-        // AdMob avisa la recompensa por evento, aparte del cierre del video.
-        Ads.addListener('onRewardedVideoAdReward', grantReward);
+        await Ads.initialize({
+            appKey: LEVELPLAY_APP_KEY,
+            rewardedAdUnitId: LEVELPLAY_REWARDED_ID,
+            interstitialAdUnitId: LEVELPLAY_INTERSTITIAL_ID,
+        });
+        // Algunas redes avisan la recompensa DESPUÉS de cerrar el video.
+        Ads.addListener('rewardedLate', grantReward);
         isAdsInitialized = true;
-        console.log("AdMob initialized successfully");
+        console.log("LevelPlay initialized successfully");
         showBannerAd();
     } catch (e) {
-        console.error("AdMob initialization error", e);
+        console.error("LevelPlay initialization error", e);
     }
 }, 500);
 
@@ -250,13 +253,7 @@ function grantReward() {
 async function showBannerAd() {
     if (!isAdsInitialized) return;
     try {
-        await getAds().showBanner({
-            adId: ADMOB_BANNER_ID,
-            adSize: 'BANNER',
-            position: 'BOTTOM_CENTER',
-            margin: 0,
-            isTesting: ADS_TESTING
-        });
+        await getAds().showBanner({ adUnitId: LEVELPLAY_BANNER_ID });
     } catch (e) {
         console.error("Error showing banner", e);
     }
@@ -271,10 +268,10 @@ async function hideBannerAd() {
     }
 }
 
+// Si no está listo se saltea: lo pide el juego, no el jugador.
 async function showInterstitialAd() {
     if (!isAdsInitialized) return;
     try {
-        await getAds().prepareInterstitial({ adId: ADMOB_INTERSTITIAL_ID, isTesting: ADS_TESTING });
         await getAds().showInterstitial();
     } catch (e) {
         console.error("Error showing interstitial", e);
@@ -287,10 +284,15 @@ async function showRewardedAd() {
         return;
     }
     try {
-        // Si no hay anuncio, prepare falla y cae en el catch. La recompensa la
-        // da el listener de 'onRewardedVideoAdReward', sólo si se vio entero.
-        await getAds().prepareRewardVideoAd({ adId: ADMOB_REWARDED_ID, isTesting: ADS_TESTING });
-        await getAds().showRewardVideoAd();
+        // Resuelve cuando el video se cierra (o, si no carga, a los 15 s como
+        // mucho): `finished` dice si se vio entero.
+        const r = await getAds().showRewarded();
+        if (!r.shown) {
+            console.warn("Sin video:", r.error);
+            alert("El video no está disponible en este momento.");
+            return;
+        }
+        if (r.finished) grantReward();
     } catch (e) {
         console.error("Error showing rewarded video", e);
         alert("El video no está disponible en este momento.");

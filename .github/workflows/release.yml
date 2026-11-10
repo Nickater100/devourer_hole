@@ -112,8 +112,11 @@ jobs:
           jarsigner -verify "$AAB" | grep -q "jar verified" || {
             echo "::error::El AAB no quedó firmado. Revisar los secretos del keystore."; exit 1; }
 
-      # Sin el App ID de AdMob en el manifiesto, el SDK de Google Ads crashea la
-      # app al abrir. Se mira el AAB que se va a subir.
+      # Sin el App ID de AdMob en el manifiesto, el SDK VIEJO de Google Ads
+      # (play-services-ads) crashea la app al abrir. Con LevelPlay el adaptador
+      # de AdMob usa el SDK Next Gen, que recibe el App ID del panel y no lo lee
+      # del manifiesto; esto vigila que ninguna dependencia vuelva a traer el
+      # viejo. Se mira el AAB que se va a subir.
       - name: Verificar el App ID de AdMob
         if: steps.secretos.outputs.hay == 'si'
         run: |
