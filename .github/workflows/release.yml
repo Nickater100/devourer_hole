@@ -13,6 +13,11 @@ name: Release a Google Play
 on:
   push:
     branches: [main]
+    # Un cambio sólo de la API (server/) no es una versión nueva de la app:
+    # sin esto, cada deploy del ranking subiría un AAB a Play.
+    paths-ignore:
+      - 'server/**'
+      - '.github/workflows/server.yml'
   workflow_dispatch:
 
 # Dos pushes seguidos no suben dos versiones pisándose.

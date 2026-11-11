@@ -1,0 +1,7 @@
+# Los scripts y configs que se copian al servidor tienen que quedar en LF:
+# con CRLF, bash falla con "set: pipefail: invalid option name" (le pasó a
+# Astragal) y nginx/compose leen basura al final de cada línea.
+*.sh   text eol=lf
+*.yml  text eol=lf
+*.conf text eol=lf
+Dockerfile text eol=lf

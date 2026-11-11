@@ -1,47 +1,41 @@
+// Arma www/: copia los archivos estáticos y empaqueta el juego (src/) y los
+// plugins de Capacitor con esbuild.
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const esbuild = require('esbuild');
 
-const srcDir = __dirname;
-const destDir = path.join(__dirname, 'www');
+const root = __dirname;
+const out = path.join(root, 'www');
+fs.mkdirSync(out, { recursive: true });
 
-// Ensure www exists
-if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir);
+// Restos de la versión anterior (el juego ahora sale de src/)
+for (const old of ['i18n.js', 'firebase-init.js']) {
+    const p = path.join(out, old);
+    if (fs.existsSync(p)) fs.unlinkSync(p);
 }
 
-// Files to copy
-const filesToCopy = [
-    'index.html',
-    'style.css',
-    'game.js',
-    'i18n.js',
-    'firebase-init.js'
+for (const file of ['index.html', 'style.css']) {
+    fs.copyFileSync(path.join(root, file), path.join(out, file));
+    console.log(`Copiado ${file}`);
+}
+
+const watch = process.argv.includes('--watch');
+// Chrome 80+ cubre los WebView de Android 7 (minSdk 24) actualizados.
+const common = { bundle: true, target: ['chrome80'], logLevel: 'info' };
+
+const builds = [
+    { entryPoints: ['src/main.js'], outfile: 'www/game.js', format: 'iife', minify: !watch, sourcemap: watch ? 'inline' : false },
+    { entryPoints: ['google-auth-init.js'], outfile: 'www/google-auth-bundle.js' },
+    { entryPoints: ['haptics-init.js'], outfile: 'www/haptics-bundle.js' },
 ];
 
-filesToCopy.forEach(file => {
-    const srcPath = path.join(srcDir, file);
-    const destPath = path.join(destDir, file);
-    if (fs.existsSync(srcPath)) {
-        fs.copyFileSync(srcPath, destPath);
-        console.log(`Copied ${file} to www/`);
-    } else {
-        console.warn(`Warning: ${file} not found!`);
+(async () => {
+    if (watch) {
+        const ctx = await esbuild.context({ ...common, ...builds[0] });
+        await ctx.watch();
+        console.log('Mirando cambios en src/…');
+        return;
     }
-});
-
-console.log('Running esbuild to bundle GoogleAuth plugin...');
-try {
-    execSync('npx esbuild google-auth-init.js --bundle --outfile=www/google-auth-bundle.js', { stdio: 'inherit' });
-} catch (e) {
-    console.error('esbuild failed for google auth', e);
-}
-
-console.log('Running esbuild to bundle Haptics plugin...');
-try {
-    execSync('npx esbuild haptics-init.js --bundle --outfile=www/haptics-bundle.js', { stdio: 'inherit' });
-} catch (e) {
-    console.error('esbuild failed for haptics', e);
-}
-
-console.log('Build complete!');
+    await Promise.all(builds.map(b => esbuild.build({ ...common, ...b })));
+    console.log('Build listo.');
+})().catch(e => { console.error(e); process.exit(1); });

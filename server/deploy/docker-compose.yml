@@ -1,0 +1,35 @@
+# API de Angry Ball. Vive en el servidor de Astragal en ~/angryball, APARTE del
+# compose de Astragal (~/backend): ni la base ni el contenedor se comparten, así
+# que un deploy de uno no puede tocar al otro.
+#   docker compose pull && docker compose up -d
+
+services:
+  app:
+    image: ghcr.io/nickater100/angryball-api:latest
+    container_name: angryball-api
+    restart: unless-stopped
+
+    # Sólo en loopback: el único camino desde internet es nginx
+    # (/angryball/api/ en astragal.duckdns.org). 3001 y 3002 son de Astragal.
+    ports:
+      - "127.0.0.1:3010:3010"
+
+    # Los valores por defecto están en src/index.js. Si alguna vez cambian:
+    # environment:
+    #   GOOGLE_CLIENT_IDS: "..."
+    #   ALLOWED_ORIGINS: "https://localhost,..."
+
+    volumes:
+      - angryball-data:/data
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  # En el servidor el data-root de Docker es /data (volumen de bloque de
+  # Oracle), así que esto queda fuera del disco de arranque como Astragal.
+  angryball-data:
+    name: angryball-data
