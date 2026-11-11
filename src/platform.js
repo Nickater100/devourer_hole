@@ -1,5 +1,6 @@
-// Todo lo que habla con el teléfono: vibración y anuncios (Unity LevelPlay).
-import { save } from './storage.js';
+// Todo lo que habla con el teléfono: vibración, anuncios (Unity LevelPlay) y
+// el pedido de opinión en Play.
+import { save, persist } from './storage.js';
 
 // ---------- Vibración ----------
 export function vibrate(kind) {
@@ -99,3 +100,28 @@ export async function showRewarded(onReward) {
 }
 
 export const isNative = () => !!window.Capacitor?.isNativePlatform?.();
+
+// ---------- Opiniones en Play ----------
+// Puente nativo: android/app/src/main/java/com/nickater/devourer/InAppReviewPlugin.java.
+// Se pide solo en un buen momento (nivel con 3 estrellas o récord), a quien ya
+// jugó un rato, y con meses de distancia: Google tiene su propia cuota y no
+// avisa si mostró la ventana, así que pedir de más no suma y molesta.
+const REVIEW_MIN_GAMES = 4;
+const REVIEW_GAP_DAYS = [0, 30, 90]; // espera antes del 1.º, 2.º y 3.º pedido
+let reviewAskedThisSession = false;
+
+export function maybeAskReview() {
+    const Review = window.Capacitor?.Plugins?.InAppReview;
+    if (!Review || !isNative() || reviewAskedThisSession) return;
+    const r = save.review;
+    if (r.asks >= REVIEW_GAP_DAYS.length) return;
+    const played = save.stats.games + save.campaign.stars.filter(s => s > 0).length;
+    if (played < REVIEW_MIN_GAMES) return;
+    if (Date.now() - r.last < REVIEW_GAP_DAYS[r.asks] * 86400000) return;
+    reviewAskedThisSession = true;
+    r.last = Date.now();
+    r.asks++;
+    persist();
+    // Que se vea el resultado (estrellas, récord) antes de la ventana de Google.
+    setTimeout(() => Review.request().catch(e => console.warn('review', e)), 2600);
+}

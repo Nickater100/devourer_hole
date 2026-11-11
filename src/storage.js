@@ -31,6 +31,8 @@ function defaults() {
         daily: { last: null, streak: 0 },
         tutorialDone: false,
         counters: { deaths: 0, campaignPlays: 0 },
+        // Pedido de opinión en Play: cuándo fue el último y cuántos van.
+        review: { last: 0, asks: 0 },
         stats: { games: 0, kills: 0, bestCombo: 0, bossKills: 0 },
         // Mejor partida con sus estadísticas (el servidor las pide para validar)
         // y la que quedó sin subir por falta de red.
@@ -84,6 +86,7 @@ function normalize(s) {
     out.settings = { ...d.settings, ...(s.settings || {}) };
     out.daily = { ...d.daily, ...(s.daily || {}) };
     out.counters = { ...d.counters, ...(s.counters || {}) };
+    out.review = { ...d.review, ...(s.review || {}) };
     out.stats = { ...d.stats, ...(s.stats || {}) };
     const c = s.campaign || d.campaign;
     out.campaign = {

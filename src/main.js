@@ -3,7 +3,7 @@ import { SKINS, BACKGROUNDS, UPGRADES, LEVELS, WORLDS, LEVELS_PER_WORLD, STAR_CO
 import { save, persist, addCoins, todayKey } from './storage.js';
 import { t, fmt, lang, setLang, applyI18n, escapeHtml } from './i18n.js';
 import { sfx, unlockAudio, applyAudioSettings, suspendAudio, setMusic } from './audio.js';
-import { initAds, showBanner, hideBanner, showInterstitial, showRewarded } from './platform.js';
+import { initAds, showBanner, hideBanner, showInterstitial, showRewarded, maybeAskReview } from './platform.js';
 import { Game, COMBO_WINDOW } from "./game.js";
 import { Background } from './backgrounds.js';
 import { drawBall } from './render.js';
@@ -278,6 +278,7 @@ function finishRun() {
 
     save.counters.deaths++;
     if (save.counters.deaths >= 3) { save.counters.deaths = 0; showInterstitial(); }
+    else if (isRecord) maybeAskReview(); // nunca encima de un anuncio
     persist();
 }
 
@@ -337,6 +338,7 @@ function onLevelEnd(r) {
 
     save.counters.campaignPlays++;
     if (save.counters.campaignPlays >= 5) { save.counters.campaignPlays = 0; showInterstitial(); }
+    else if (r.win && r.stars === 3) maybeAskReview(); // nunca encima de un anuncio
     persist();
 }
 
@@ -727,6 +729,16 @@ if (dailyAvailable() && save.highScore > 0) setTimeout(() => { if (current === '
 if (window.__game) {
     const q = new URLSearchParams(location.search);
     if (q.get('coins')) { save.coins = +q.get('coins'); refreshCoins(); }
+    if (q.has('demo')) {
+        // Progreso de muestra para las capturas (no se guarda: sólo en memoria)
+        [3, 3, 2, 3, 3, 2, 3, 1, 3, 3, 3, 2, 3].forEach((s, i) => { save.campaign.stars[i] = s; });
+        save.campaign.unlocked = 13;
+        save.highScore = 1287;
+        save.owned.push('skin-neon', 'skin-fire', 'bg-fire');
+        save.upgrades = { shield: 2, size: 1, magnet: 3, rage: 1, luck: 0 };
+        save.daily.last = todayKey();
+        refreshMenu();
+    }
     ({ store: openStore, levels: () => openLevels(), ranking: openRanking, daily: openDaily, settings: () => $('#btn-settings').click() }[q.get('screen')] || (() => {}))();
     if (q.get('skin')) { save.skin = q.get('skin'); save.background = q.get('bg') || save.background; game.refreshBackground(); }
     if (q.get('level')) startLevel(+q.get('level'));
@@ -741,5 +753,50 @@ if (window.__game) {
             if ((g.rageT > 0 || g.player.growT > 0) && g.bosses[0]) best = g.bosses[0];
             if (best) { g.player.tx = best.x; g.player.ty = best.y; }
         }, 16);
+    }
+    // Escenas para capturas de la tienda: ?debug&survival&sim=900[&rage][&pu][&boss][&combo=N]
+    if (q.get('sim')) {
+        const g = game;
+        closeModal('m-intro');
+        g.player.moved = 999;
+        g.tutorial = -1;
+        let T = performance.now();
+        for (let i = 0; i < +q.get('sim'); i++) {
+            if (g.state === 'PLAYING') {
+                let best = null, bd = 1e9;
+                for (const e of g.enemies) { if (e.eaten || !e.solid) continue; const d = Math.hypot(e.x - g.pip.x, e.y - g.pip.y); if (d < bd) { bd = d; best = e; } }
+                if (best && bd < g.U * 45) { g.player.tx = best.x; g.player.ty = best.y; }
+                else { g.player.tx = g.pip.x + g.U * 12; g.player.ty = g.pip.y + g.U * 22; }
+                g.pip.invuln = 2;
+            }
+            T += 1000 / 60; g.last = T - 1000 / 60; g.frame(T);
+        }
+        if (q.has('boss') && !g.bosses.length) { g.spawnBoss(); const b = g.bosses[0]; b.x = g.w * 0.72; b.y = g.h * 0.3; b.entering = false; }
+        if (q.has('rage')) { g.combo = +(q.get('combo') || 12); g.mult = Math.floor(g.combo / 5) + 1; g.rageMax = 360; g.rageT = 300; g.comboT = 140; g.timeScale = 0.4; }
+        if (q.has('pu')) {
+            const kinds = ['nova', 'freeze', 'grow'];
+            kinds.forEach((k, i) => g.powerups.push({ kind: k, x: g.w * (0.22 + i * 0.28), y: g.h * (0.62 + (i % 2) * 0.08), r: 4.2 * g.U, life: 9999, t: i }));
+        }
+        if (q.get('score')) g.score = +q.get('score');
+        if (q.has('place')) {
+            const p = g.player, pip = g.pip;
+            p.x = p.tx = g.w * 0.56; p.y = p.ty = g.h * 0.64;
+            pip.x = g.w * 0.34; pip.y = g.h * 0.47; pip.fear = 0.7; pip.lookX = 0.7; pip.lookY = -0.3;
+            if (!q.has('giant')) { p.growT = 0; p.r = p.baseR * (g.rageT > 0 ? 1.08 : 1); }
+            p.mouth = 0.85; p.lookX = 0.4; p.lookY = -0.6;
+            // Sacar cubos encimados a la bola o a Pip
+            g.enemies = g.enemies.filter(e => !e.eaten && Math.hypot(e.x - p.x, e.y - p.y) > p.r * 1.4 && Math.hypot(e.x - pip.x, e.y - pip.y) > pip.r * 2.5);
+            g.coins = [];
+            g.bosses = g.bosses.slice(0, +(q.get('maxboss') || 0));
+            if (g.bosses[0]) Object.assign(g.bosses[0], { x: g.w * 0.78, y: g.h * 0.4, entering: false });
+            g.fx.texts = [];
+            const U = g.U;
+            g.fx.text(p.x + p.r * 1.1, p.y - p.r * 1.2, q.get('pts') || '+12', '#ffe066', 6 * U + 6, { life: 99, rise: 0 });
+            if (q.get('label')) g.fx.text(g.w / 2, g.h * 0.3, q.get('label'), q.get('labelColor') || '#ffe066', 9 * U * 0.5 + 18, { life: 99, rise: 0 });
+            for (const tx of g.fx.texts) tx.max = tx.life = 99;
+        }
+        g.pip.invuln = 0;
+        g.step = () => {}; // congelado: se sigue dibujando pero nada se mueve
+        hideTutorial();
     }
 }

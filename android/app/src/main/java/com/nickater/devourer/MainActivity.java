@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
         // Los plugins locales se registran ANTES de super.onCreate, que es donde
         // Capacitor arma el puente con JS.
         registerPlugin(LevelPlayPlugin.class);
+        registerPlugin(InAppReviewPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
