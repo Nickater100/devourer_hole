@@ -20,7 +20,7 @@ export function vibrate(kind) {
 
 // ---------- Publicidad ----------
 // LevelPlay (ex ironSource) es un mediador: subasta cada anuncio entre ironSource
-// Ads, Liftoff y AdMob (Unity Ads sacado: ver android/app/build.gradle). El puente nativo es
+// Ads, Unity Ads, Liftoff y AdMob. El puente nativo es
 // android/app/src/main/java/com/nickater/devourer/LevelPlayPlugin.java; las redes
 // y sus IDs se configuran en el panel (platform.ironsrc.com, app "Angry Ball").
 // Ninguno de estos IDs es secreto: viajan dentro de la APK.

@@ -80,3 +80,7 @@
 -keep class com.google.android.gms.ads.identifier.AdvertisingIdClient$* { *; }
 -keep class com.google.android.gms.appset.** { *; }
 -keep class com.google.android.gms.tasks.** { *; }
+
+# Unity Ads sin la librería Coherence (excluida en build.gradle por la política
+# de Play): sus clases faltan a propósito y Unity atrapa el error en runtime.
+-dontwarn com.unity3d.coherence.**
